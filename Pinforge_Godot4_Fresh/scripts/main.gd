@@ -343,6 +343,15 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		if _handle_mobile_touch_event(event):
 			get_viewport().set_input_as_handled()
+			return
+	# Some mobile browsers route taps as mouse events.
+	if awaiting_choice and choice_panel and choice_panel.visible and event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			var idx: int = _choice_index_at_point(mb.position)
+			if idx >= 0:
+				_on_choice_pressed(idx)
+				get_viewport().set_input_as_handled()
 
 func _configure_platform_scaling() -> void:
 	if OS.has_feature("mobile"):
@@ -2846,10 +2855,12 @@ func _on_choice_pressed(index: int) -> void:
 	_update_hud()
 
 func _on_choice_button_down(index: int) -> void:
-	if not awaiting_choice:
+	if choice_panel == null or not choice_panel.visible:
 		return
 	if index < 0 or index >= choice_payload.size():
 		return
+	if not awaiting_choice:
+		awaiting_choice = true
 	_on_choice_pressed(index)
 
 func _set_controls_enabled(enabled: bool) -> void:
