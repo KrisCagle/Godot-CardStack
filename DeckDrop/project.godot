@@ -1,0 +1,37 @@
+; Engine configuration file.
+; DeckDrop — Tetris meets poker.
+
+config_version=5
+
+[application]
+
+config/name="DeckDrop"
+config/description="Tap a column to drop a card. Make poker hands across rows and columns. Endless."
+run/main_scene="res://scenes/Title.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+SaveData="*res://scripts/save_data.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=405
+window/size/window_height_override=720
+window/handheld/orientation="portrait"
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/canvas_textures/default_texture_filter=1
