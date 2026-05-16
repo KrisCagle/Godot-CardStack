@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://deckdrop_game"]
+[gd_scene load_steps=4 format=3 uid="uid://deckdrop_game"]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/playfield.gd" id="2_playfield"]
+[ext_resource type="Script" path="res://scripts/card_view.gd" id="3_cardview"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -25,11 +26,6 @@ offset_bottom = 180.0
 
 [node name="LevelLabel" type="Label" parent="HUD"]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
 offset_left = 36.0
 offset_top = 60.0
 offset_right = 400.0
@@ -40,11 +36,8 @@ theme_override_font_sizes/font_size = 56
 
 [node name="ScoreLabel" type="Label" parent="HUD"]
 layout_mode = 1
-anchors_preset = 1
 anchor_left = 1.0
-anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 0.0
 offset_left = -440.0
 offset_top = 60.0
 offset_right = -36.0
@@ -56,11 +49,8 @@ theme_override_font_sizes/font_size = 56
 
 [node name="BackButton" type="Button" parent="HUD"]
 layout_mode = 1
-anchors_preset = 1
 anchor_left = 0.5
-anchor_top = 0.0
 anchor_right = 0.5
-anchor_bottom = 0.0
 offset_left = -100.0
 offset_top = 30.0
 offset_right = 100.0
@@ -74,8 +64,69 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 180.0
-offset_bottom = -150.0
+offset_bottom = -380.0
 script = ExtResource("2_playfield")
+
+[node name="BottomArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -380.0
+offset_bottom = -150.0
+
+[node name="CurrentLabel" type="Label" parent="BottomArea"]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 10.0
+offset_right = 240.0
+offset_bottom = 44.0
+modulate = Color(0.5, 0.56, 0.68, 1)
+text = "CURRENT"
+theme_override_font_sizes/font_size = 28
+
+[node name="CurrentSlot" type="Control" parent="BottomArea"]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 48.0
+offset_right = 196.0
+offset_bottom = 228.0
+script = ExtResource("3_cardview")
+
+[node name="NextLabel" type="Label" parent="BottomArea"]
+layout_mode = 1
+offset_left = 310.0
+offset_top = 10.0
+offset_right = 600.0
+offset_bottom = 44.0
+modulate = Color(0.5, 0.56, 0.68, 1)
+text = "NEXT →"
+theme_override_font_sizes/font_size = 28
+
+[node name="Preview0" type="Control" parent="BottomArea"]
+layout_mode = 1
+offset_left = 310.0
+offset_top = 90.0
+offset_right = 394.0
+offset_bottom = 204.0
+script = ExtResource("3_cardview")
+
+[node name="Preview1" type="Control" parent="BottomArea"]
+layout_mode = 1
+offset_left = 412.0
+offset_top = 90.0
+offset_right = 496.0
+offset_bottom = 204.0
+script = ExtResource("3_cardview")
+
+[node name="Preview2" type="Control" parent="BottomArea"]
+layout_mode = 1
+offset_left = 514.0
+offset_top = 90.0
+offset_right = 598.0
+offset_bottom = 204.0
+script = ExtResource("3_cardview")
 
 [node name="AdPlaceholder" type="ColorRect" parent="."]
 layout_mode = 1
