@@ -8,7 +8,7 @@ extends RefCounted
 ## against without needing the dealer's cards on screen.
 
 const TIER_TARGETS := [
-	{"name": "Low Pair",       "score": 50},
+	{"name": "Low Pair",       "score": 25},
 	{"name": "Pair",           "score": 100},
 	{"name": "Two Pair",       "score": 160},
 	{"name": "Trips",          "score": 240},

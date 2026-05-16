@@ -20,7 +20,7 @@ const PREVIEW_SIZE := 3
 const DROP_DURATION := 0.26
 const CLEAR_DELAY := 0.16
 const GRAVITY_DELAY := 0.16
-const ROUND_LENGTH := 5  # placements per dealer round
+const ROUND_LENGTH := 7  # placements per dealer round
 
 const TIER_THRESHOLDS := [0, 500, 1500, 3000, 5000, 8000, 12000, 18000, 25000, 35000]
 
