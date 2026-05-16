@@ -1,9 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://deckdrop_game"]
+[gd_scene load_steps=7 format=3 uid="uid://deckdrop_game"]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/playfield.gd" id="2_playfield"]
 [ext_resource type="Script" path="res://scripts/card_view.gd" id="3_cardview"]
 [ext_resource type="Script" path="res://scripts/game_over_panel.gd" id="4_gameover"]
+[ext_resource type="Shader" path="res://shaders/background.gdshader" id="5_bgshader"]
+
+[sub_resource type="ShaderMaterial" id="bgmat"]
+shader = ExtResource("5_bgshader")
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -13,6 +17,7 @@ anchor_bottom = 1.0
 script = ExtResource("1_game")
 
 [node name="Background" type="ColorRect" parent="."]
+material = SubResource("bgmat")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

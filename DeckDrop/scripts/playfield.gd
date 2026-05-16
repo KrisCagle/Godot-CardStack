@@ -308,6 +308,9 @@ func _col_from_x(local_x: float) -> int:
 
 
 func _draw() -> void:
+	# Felt surface — slightly darker than the page so the play area has presence
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.04, 0.07, 0.10, 1.0), true)
+
 	for x in GRID_WIDTH:
 		for y in GRID_HEIGHT:
 			var rect := cell_local_rect(x, y)

@@ -77,6 +77,10 @@ var _dealer_tier: int = 1  # what tier dealer is currently scaled to
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
 
+# Score count-up animation
+var _displayed_score: int = 0
+var _score_tween: Tween = null
+
 
 func _ready() -> void:
 	playfield.column_tapped.connect(_on_column_tapped)
@@ -105,9 +109,13 @@ func _start_new_game() -> void:
 	_round_best_score = 0
 	_dealer_tier = 1
 	_dealer_target = Dealer.target_for_tier(_dealer_tier)
+	_displayed_score = 0
+	if _score_tween != null and _score_tween.is_valid():
+		_score_tween.kill()
 	playfield.reset()
 	game_over_panel.hide_summary()
 	_refresh()
+	_show_round_splash("ROUND 1")
 
 
 func _process(delta: float) -> void:
@@ -208,6 +216,7 @@ func _process_cascades() -> void:
 				% [g.name, g.axis, g.score, tier_mult, combo_mult, earned, score])
 
 			_spawn_hand_popup(g, earned)
+			_spawn_cell_glow(g)
 			if int(g.rank) >= HandEvaluator.HandRank.FOUR_OF_A_KIND:
 				_shake(14.0, 0.30)
 
@@ -220,6 +229,8 @@ func _process_cascades() -> void:
 				seen[c] = true
 				unique_cells.append(c)
 
+		# Hold so the glow is visible before cells vanish.
+		await get_tree().create_timer(0.18).timeout
 		_spawn_clear_particles(unique_cells)
 		playfield.clear_cells(unique_cells)
 		await get_tree().create_timer(CLEAR_DELAY).timeout
@@ -245,6 +256,7 @@ func _evaluate_round() -> void:
 		# Scale up dealer for next round.
 		_dealer_tier += 1
 		_dealer_target = Dealer.target_for_tier(_dealer_tier)
+		_show_round_splash("ROUND %d" % _dealer_tier)
 	else:
 		# Lose — game over
 		print("[dealer] %s (%d) WINS — best %d not enough" \
@@ -350,7 +362,19 @@ func _refresh() -> void:
 
 
 func _refresh_score() -> void:
-	score_label.text = "Score  %d" % score
+	if _score_tween != null and _score_tween.is_valid():
+		_score_tween.kill()
+	if _displayed_score == score:
+		score_label.text = "Score  %d" % score
+		return
+	_score_tween = create_tween()
+	_score_tween.tween_method(_set_displayed_score, _displayed_score, score, 0.40) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _set_displayed_score(v: int) -> void:
+	_displayed_score = v
+	score_label.text = "Score  %d" % v
 
 
 func _refresh_dealer_hud() -> void:
@@ -565,6 +589,55 @@ func _color_for_hand_rank(rank: int) -> Color:
 			return Color(0.95, 0.78, 0.45)
 		_:
 			return Color(0.90, 0.90, 0.94)
+
+
+func _spawn_cell_glow(g: Dictionary) -> void:
+	var color := _color_for_hand_rank(int(g.rank))
+	color.a = 0.75
+	for cell in g.get("cells", []):
+		var p: Vector2i = cell
+		var rect: Rect2 = playfield.cell_local_rect(p.x, p.y)
+		var pos: Vector2 = playfield.global_position + rect.position
+		var glow := ColorRect.new()
+		glow.position = pos
+		glow.size = rect.size
+		glow.color = color
+		glow.pivot_offset = rect.size * 0.5
+		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		glow.z_index = 60
+		add_child(glow)
+		var t := create_tween().set_parallel(true)
+		t.tween_property(glow, "modulate:a", 0.0, 0.45)
+		t.tween_property(glow, "scale", Vector2(1.18, 1.18), 0.45) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.finished.connect(glow.queue_free)
+
+
+func _show_round_splash(text: String) -> void:
+	var splash := Label.new()
+	splash.text = text
+	splash.add_theme_font_size_override("font_size", 140)
+	splash.add_theme_color_override("font_color", Color(1.0, 0.95, 0.65))
+	splash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	splash.add_theme_constant_override("outline_size", 16)
+	splash.z_index = 150
+	splash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(splash)
+	await get_tree().process_frame
+	splash.position = (size - splash.size) * 0.5
+	splash.position.y -= 120.0
+	splash.pivot_offset = splash.size * 0.5
+	splash.scale = Vector2(0.4, 0.4)
+	splash.modulate.a = 0.0
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(splash, "scale", Vector2(1.0, 1.0), 0.30) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(splash, "modulate:a", 1.0, 0.20)
+	t.tween_property(splash, "modulate:a", 0.0, 0.40).set_delay(0.70)
+
+	await t.finished
+	splash.queue_free()
 
 
 func _spawn_mini_popup(text: String, world_pos: Vector2, color: Color) -> void:
