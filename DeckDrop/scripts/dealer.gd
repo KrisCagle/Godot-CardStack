@@ -8,21 +8,20 @@ extends RefCounted
 ## against without needing the dealer's cards on screen.
 
 const TIER_TARGETS := [
-	{"name": "Low Pair",       "score": 50,   "rank": HandEvaluator.HandRank.PAIR},
-	{"name": "Pair",           "score": 100,  "rank": HandEvaluator.HandRank.PAIR},
-	{"name": "Two Pair",       "score": 160,  "rank": HandEvaluator.HandRank.TWO_PAIR},
-	{"name": "Trips",          "score": 240,  "rank": HandEvaluator.HandRank.THREE_OF_A_KIND},
-	{"name": "Straight",       "score": 360,  "rank": HandEvaluator.HandRank.STRAIGHT},
-	{"name": "Flush",          "score": 500,  "rank": HandEvaluator.HandRank.FLUSH},
-	{"name": "Full House",     "score": 700,  "rank": HandEvaluator.HandRank.FULL_HOUSE},
-	{"name": "Quads",          "score": 950,  "rank": HandEvaluator.HandRank.FOUR_OF_A_KIND},
-	{"name": "Straight Flush", "score": 1400, "rank": HandEvaluator.HandRank.STRAIGHT_FLUSH},
-	{"name": "Royal Flush",    "score": 2500, "rank": HandEvaluator.HandRank.ROYAL_FLUSH},
+	{"name": "Low Pair",       "score": 50},
+	{"name": "Pair",           "score": 100},
+	{"name": "Two Pair",       "score": 160},
+	{"name": "Trips",          "score": 240},
+	{"name": "Straight",       "score": 360},
+	{"name": "Flush",          "score": 500},
+	{"name": "Full House",     "score": 700},
+	{"name": "Quads",          "score": 950},
+	{"name": "Straight Flush", "score": 1400},
+	{"name": "Royal Flush",    "score": 2500},
 ]
 
 
-# Returns {name: String, score: int, rank: int} for the given tier.
-# Clamps to the table bounds.
+# Returns {name: String, score: int} for the given tier. Clamps to table bounds.
 static func target_for_tier(tier: int) -> Dictionary:
 	var idx := clampi(tier - 1, 0, TIER_TARGETS.size() - 1)
 	return TIER_TARGETS[idx].duplicate()
