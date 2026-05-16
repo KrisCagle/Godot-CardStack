@@ -1,8 +1,12 @@
+class_name PlayField
 extends Control
 ## The 5x8 play grid. Owns visual rendering, column-tap input, and grid state.
 ## Game.gd asks where a card would land, animates the drop, then commits the
 ## card via place_card and runs the scoring/cascade loop using find_scoring_groups,
 ## clear_cells, and apply_gravity.
+##
+## Scoring axes: full rows (top-to-bottom), bottom-5 of each column, and 5-card
+## diagonals (down-right and down-left, 4 starting positions each in our 5×8 grid).
 
 const GRID_WIDTH := 5
 const GRID_HEIGHT := 8
@@ -128,7 +132,100 @@ func find_scoring_groups() -> Array:
 			"axis": "column",
 		})
 
+	# Diagonals (down-right: \) — with width 5, only one x-start fits.
+	for y_start in range(GRID_HEIGHT - 4):
+		var diag_cards: Array = []
+		var complete := true
+		for i in 5:
+			var c: Card = grid[i][y_start + i]
+			if c == null:
+				complete = false
+				break
+			diag_cards.append(c)
+		if not complete:
+			continue
+		var result: Dictionary = HandEvaluator.evaluate(diag_cards)
+		if int(result.score) <= 0:
+			continue
+		var cells: Array = []
+		for i in 5:
+			cells.append(Vector2i(i, y_start + i))
+		groups.append({
+			"cells": cells,
+			"name": result.name,
+			"score": int(result.score),
+			"rank": int(result.rank),
+			"multiplier": int(result.multiplier),
+			"axis": "diag↘",
+		})
+
+	# Diagonals (down-left: /)
+	for y_start in range(GRID_HEIGHT - 4):
+		var diag_cards: Array = []
+		var complete := true
+		for i in 5:
+			var c: Card = grid[GRID_WIDTH - 1 - i][y_start + i]
+			if c == null:
+				complete = false
+				break
+			diag_cards.append(c)
+		if not complete:
+			continue
+		var result: Dictionary = HandEvaluator.evaluate(diag_cards)
+		if int(result.score) <= 0:
+			continue
+		var cells: Array = []
+		for i in 5:
+			cells.append(Vector2i(GRID_WIDTH - 1 - i, y_start + i))
+		groups.append({
+			"cells": cells,
+			"name": result.name,
+			"score": int(result.score),
+			"rank": int(result.rank),
+			"multiplier": int(result.multiplier),
+			"axis": "diag↙",
+		})
+
 	return groups
+
+
+# Returns the 2×2 same-suit squares that include (col, row), as a list of
+# top-left Vector2i corners. Empty array if none. Used for adjacency-style
+# suit-cluster bonuses on placement (does not clear cells).
+func find_same_suit_squares_at(col: int, row: int) -> Array:
+	var squares: Array = []
+	# The cell (col, row) can be any of the four corners of a 2×2.
+	var candidates := [
+		Vector2i(col, row),
+		Vector2i(col - 1, row),
+		Vector2i(col, row - 1),
+		Vector2i(col - 1, row - 1),
+	]
+	for tl in candidates:
+		if tl.x < 0 or tl.y < 0:
+			continue
+		if tl.x + 1 >= GRID_WIDTH or tl.y + 1 >= GRID_HEIGHT:
+			continue
+		var c1: Card = grid[tl.x][tl.y]
+		var c2: Card = grid[tl.x + 1][tl.y]
+		var c3: Card = grid[tl.x][tl.y + 1]
+		var c4: Card = grid[tl.x + 1][tl.y + 1]
+		if c1 == null or c2 == null or c3 == null or c4 == null:
+			continue
+		# Jokers don't count toward suit matching here (treat as mismatched).
+		if c1.is_joker or c2.is_joker or c3.is_joker or c4.is_joker:
+			continue
+		if c1.suit == c2.suit and c2.suit == c3.suit and c3.suit == c4.suit:
+			squares.append(tl)
+	return squares
+
+
+# Returns the card at (col, row), or null. Public accessor so game.gd doesn't
+# need to reach into grid[][] directly.
+func card_at(col: int, row: int) -> Card:
+	if col < 0 or col >= GRID_WIDTH or row < 0 or row >= GRID_HEIGHT:
+		return null
+	return grid[col][row]
 
 
 func clear_cells(cells: Array) -> void:

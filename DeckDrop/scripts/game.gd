@@ -40,7 +40,7 @@ const FIRST_TIME_BONUSES := {
 	"Royal Flush": 500,
 }
 
-@onready var playfield: Control = $PlayField
+@onready var playfield: PlayField = $PlayField
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var tier_label: Label = $HUD/TierLabel
 @onready var back_button: Button = $HUD/BackButton
@@ -125,6 +125,7 @@ func _on_column_tapped(col: int) -> void:
 	var placed := _current
 	await _animate_drop(placed, col, target_row)
 	playfield.place_card(placed, col)
+	_apply_placement_bonuses(col, target_row, placed)
 	await _process_cascades()
 	_check_tier_up()
 
@@ -422,6 +423,77 @@ func _color_for_hand_rank(rank: int) -> Color:
 			return Color(0.95, 0.78, 0.45)
 		_:
 			return Color(0.90, 0.90, 0.94)
+
+
+# --- per-placement bonuses (strategy depth) ---
+
+
+# Awards adjacency (same-rank +5, same-suit +3 per neighbor) and same-suit 2×2
+# square bonuses (+20 each) for the just-placed card, multiplied by the active
+# combo. Fires a single mini popup near the placement so the player can see why
+# the score moved.
+func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
+	if placed == null or placed.is_joker:
+		return
+	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
+
+	var adj_raw := _adjacency_bonus(col, row, placed)
+	var squares: Array = playfield.find_same_suit_squares_at(col, row)
+	var square_raw := squares.size() * 20
+	var raw_total := adj_raw + square_raw
+	if raw_total <= 0:
+		return
+
+	var earned := int(round(float(raw_total) * combo_mult))
+	score += earned
+	_refresh_score()
+
+	var rect: Rect2 = playfield.cell_local_rect(col, row)
+	var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+	var color: Color = Color(0.70, 1.00, 0.85) if square_raw == 0 else Color(0.80, 0.95, 1.00)
+	_spawn_mini_popup("+%d" % earned, center, color)
+
+
+func _adjacency_bonus(col: int, row: int, placed: Card) -> int:
+	var bonus := 0
+	var neighbors := [
+		Vector2i(col - 1, row),
+		Vector2i(col + 1, row),
+		Vector2i(col, row - 1),
+		Vector2i(col, row + 1),
+	]
+	for n in neighbors:
+		var neighbor: Card = playfield.card_at(n.x, n.y)
+		if neighbor == null or neighbor.is_joker:
+			continue
+		if neighbor.rank == placed.rank:
+			bonus += 5
+		if neighbor.suit == placed.suit:
+			bonus += 3
+	return bonus
+
+
+func _spawn_mini_popup(text: String, world_pos: Vector2, color: Color) -> void:
+	var popup := Label.new()
+	popup.text = text
+	popup.add_theme_font_size_override("font_size", 36)
+	popup.add_theme_color_override("font_color", color)
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	popup.add_theme_constant_override("outline_size", 6)
+	popup.z_index = 90
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+	popup.position = world_pos - popup.size * 0.5
+	var start_y := popup.position.y
+
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(popup, "position:y", start_y - 90.0, 0.7) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.45).set_delay(0.25)
+
+	await tween.finished
+	popup.queue_free()
 
 
 func _on_play_again_pressed() -> void:
