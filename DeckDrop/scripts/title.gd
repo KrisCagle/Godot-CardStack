@@ -20,5 +20,4 @@ func _refresh() -> void:
 
 
 func _on_play_pressed() -> void:
-	# Game scene comes online in task #2. For now, just a stub.
-	push_warning("Game scene not built yet — wiring up in task #2.")
+	get_tree().change_scene_to_file("res://scenes/Game.tscn")
