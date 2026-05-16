@@ -5,23 +5,22 @@ extends Control
 ## score thresholds promote the run to higher tiers, and each tier shrinks
 ## the visible preview queue (less foresight = harder planning).
 ##
-## Combo: each placement extends a 4-second timer and bumps the combo counter
-## by 1. Scoring multiplies by (1 + (combo - 1) × 0.2). Let the timer run out
-## and the next placement starts a fresh combo at 1.
+## Combo: each placement extends a 4-second timer and bumps the combo counter.
+## Scoring multiplies by (1 + (combo - 1) × 0.2).
 ##
-## Game over: triggered when any column overflows (a card lands in row 0).
-## End-of-run hands XP to SaveData (score/100 + first-time-hand bonuses) and
-## shows the GameOverPanel with Play Again / Menu.
+## Dealer Showdown: every ROUND_LENGTH placements, the dealer issues a target
+## score. The player must clear at least one hand that scores higher during
+## the round. Beat = bonus score + dealer scales up. Fail = immediate game over.
 ##
-## Polish: every scoring hand spawns a floating popup ("FLUSH +135") that
-## drifts up and fades; cleared cells burst particles; cascade tiers ≥2 and
-## any hand at Four-of-a-Kind or rarer trigger a screen shake on the
-## playfield.
+## Game over: triggered by column overflow OR dealer-round loss. End-of-run
+## hands XP to SaveData (score/100 + first-time-hand bonuses) and shows the
+## GameOverPanel with the relevant reason.
 
 const PREVIEW_SIZE := 3
 const DROP_DURATION := 0.26
 const CLEAR_DELAY := 0.16
 const GRAVITY_DELAY := 0.16
+const ROUND_LENGTH := 5  # placements per dealer round
 
 const TIER_THRESHOLDS := [0, 500, 1500, 3000, 5000, 8000, 12000, 18000, 25000, 35000]
 
@@ -46,6 +45,8 @@ const FIRST_TIME_BONUSES := {
 @onready var back_button: Button = $HUD/BackButton
 @onready var combo_bar: ProgressBar = $HUD/ComboBar
 @onready var combo_label: Label = $HUD/ComboLabel
+@onready var dealer_info_label: Label = $HUD/DealerInfoLabel
+@onready var round_counter_label: Label = $HUD/RoundCounterLabel
 @onready var current_card_view: CardView = $TopArea/CurrentSlot
 @onready var preview_card_views: Array[CardView] = [
 	$BottomArea/Preview0,
@@ -66,6 +67,12 @@ var _combo_timer: float = 0.0
 var _best_hand_name: String = ""
 var _best_hand_score: int = 0
 var _hands_seen_this_run: Dictionary = {}
+
+# Dealer state
+var _dealer_target: Dictionary = {}
+var _round_placements: int = 0
+var _round_best_score: int = 0
+var _dealer_tier: int = 1  # what tier dealer is currently scaled to
 
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
@@ -94,6 +101,10 @@ func _start_new_game() -> void:
 	_best_hand_name = ""
 	_best_hand_score = 0
 	_hands_seen_this_run = {}
+	_round_placements = 0
+	_round_best_score = 0
+	_dealer_tier = 1
+	_dealer_target = Dealer.target_for_tier(_dealer_tier)
 	playfield.reset()
 	game_over_panel.hide_summary()
 	_refresh()
@@ -130,8 +141,15 @@ func _on_column_tapped(col: int) -> void:
 	_check_tier_up()
 
 	if playfield.is_any_column_full():
-		_end_run()
+		_end_run("column_overflow")
 		return
+
+	# Dealer round
+	_round_placements += 1
+	if _round_placements >= ROUND_LENGTH:
+		await _evaluate_round()
+		if _game_over:
+			return
 
 	_advance_queue()
 	_combo_timer = COMBO_TIME_MAX
@@ -182,6 +200,8 @@ func _process_cascades() -> void:
 			if earned > _best_hand_score:
 				_best_hand_score = earned
 				_best_hand_name = String(g.name)
+			if earned > _round_best_score:
+				_round_best_score = earned
 			_hands_seen_this_run[String(g.name)] = int(_hands_seen_this_run.get(g.name, 0)) + 1
 
 			print("[score] %s (%s) %d × tier %.1f × combo %.1f → %d  (total %d)" \
@@ -207,7 +227,40 @@ func _process_cascades() -> void:
 		await get_tree().create_timer(GRAVITY_DELAY).timeout
 
 
-func _end_run() -> void:
+# Evaluates the dealer round. Caller awaits — may end the run if player lost.
+func _evaluate_round() -> void:
+	var dealer_score: int = int(_dealer_target.get("score", 0))
+	var dealer_name: String = String(_dealer_target.get("name", "?"))
+
+	if _round_best_score > dealer_score:
+		# Win
+		var bonus := int(round(float(dealer_score) * 0.5))
+		score += bonus
+		_refresh_score()
+		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
+			% [dealer_name, dealer_score, _round_best_score, bonus])
+		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
+		_shake(10.0, 0.22)
+		await get_tree().create_timer(0.55).timeout
+		# Scale up dealer for next round.
+		_dealer_tier += 1
+		_dealer_target = Dealer.target_for_tier(_dealer_tier)
+	else:
+		# Lose — game over
+		print("[dealer] %s (%d) WINS — best %d not enough" \
+			% [dealer_name, dealer_score, _round_best_score])
+		_spawn_dealer_popup("DEALER WINS!", Color(1.0, 0.40, 0.45))
+		_shake(18.0, 0.40)
+		await get_tree().create_timer(1.1).timeout
+		_end_run("dealer_won")
+		return
+
+	_round_placements = 0
+	_round_best_score = 0
+	_refresh_dealer_hud()
+
+
+func _end_run(reason: String = "column_overflow") -> void:
 	_game_over = true
 	_is_animating = false
 	_combo_timer = 0.0
@@ -227,10 +280,11 @@ func _end_run() -> void:
 	var add_result: Dictionary = SaveData.add_xp(total_xp)
 	var is_new_best: bool = SaveData.record_score(score, _today_date())
 
-	print("[run] over · score %d · xp +%d (score %d + hands %d)" \
-		% [score, total_xp, xp_from_score, first_time_bonus])
+	print("[run] over (%s) · score %d · xp +%d (score %d + hands %d)" \
+		% [reason, score, total_xp, xp_from_score, first_time_bonus])
 
 	game_over_panel.show_summary({
+		"reason": reason,
 		"score": score,
 		"best_hand_name": _best_hand_name,
 		"best_hand_score": _best_hand_score,
@@ -292,10 +346,26 @@ func _refresh() -> void:
 		if i < visible:
 			slot.set_card(_preview[i])
 	_refresh_combo_display()
+	_refresh_dealer_hud()
 
 
 func _refresh_score() -> void:
 	score_label.text = "Score  %d" % score
+
+
+func _refresh_dealer_hud() -> void:
+	var dealer_name: String = String(_dealer_target.get("name", "?"))
+	var dealer_score: int = int(_dealer_target.get("score", 0))
+	dealer_info_label.text = "⚔ DEALER: %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
+	var left := ROUND_LENGTH - _round_placements
+	round_counter_label.text = "%d LEFT" % left
+	# Color round counter by urgency
+	if left <= 1:
+		round_counter_label.modulate = Color(1.0, 0.4, 0.45)
+	elif left <= 2:
+		round_counter_label.modulate = Color(1.0, 0.75, 0.4)
+	else:
+		round_counter_label.modulate = Color(1.0, 0.95, 0.5)
 
 
 func _refresh_combo_display() -> void:
@@ -320,7 +390,51 @@ func _refresh_combo_display() -> void:
 	combo_bar.modulate = fill
 
 
-# --- polish: popups, particles, screen shake ---
+# --- per-placement bonuses ---
+
+
+func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
+	if placed == null or placed.is_joker:
+		return
+	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
+
+	var adj_raw := _adjacency_bonus(col, row, placed)
+	var squares: Array = playfield.find_same_suit_squares_at(col, row)
+	var square_raw := squares.size() * 20
+	var raw_total := adj_raw + square_raw
+	if raw_total <= 0:
+		return
+
+	var earned := int(round(float(raw_total) * combo_mult))
+	score += earned
+	_refresh_score()
+
+	var rect: Rect2 = playfield.cell_local_rect(col, row)
+	var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+	var color: Color = Color(0.70, 1.00, 0.85) if square_raw == 0 else Color(0.80, 0.95, 1.00)
+	_spawn_mini_popup("+%d" % earned, center, color)
+
+
+func _adjacency_bonus(col: int, row: int, placed: Card) -> int:
+	var bonus := 0
+	var neighbors := [
+		Vector2i(col - 1, row),
+		Vector2i(col + 1, row),
+		Vector2i(col, row - 1),
+		Vector2i(col, row + 1),
+	]
+	for n in neighbors:
+		var neighbor: Card = playfield.card_at(n.x, n.y)
+		if neighbor == null or neighbor.is_joker:
+			continue
+		if neighbor.rank == placed.rank:
+			bonus += 5
+		if neighbor.suit == placed.suit:
+			bonus += 3
+	return bonus
+
+
+# --- popups, particles, shake ---
 
 
 func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
@@ -348,6 +462,34 @@ func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
 	tween.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.20) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.40).set_delay(0.55)
+
+	await tween.finished
+	popup.queue_free()
+
+
+# Big screen-centered popup for dealer round outcomes.
+func _spawn_dealer_popup(text: String, color: Color) -> void:
+	var popup := Label.new()
+	popup.text = text
+	popup.add_theme_font_size_override("font_size", 88)
+	popup.add_theme_color_override("font_color", color)
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
+	popup.add_theme_constant_override("outline_size", 14)
+	popup.z_index = 120
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	popup.position = (size - popup.size) * 0.5
+	popup.position.y -= 100.0
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.5, 0.5)
+
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(popup, "scale", Vector2(1.1, 1.1), 0.25) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.15).set_delay(0.25)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.50).set_delay(0.65)
 
 	await tween.finished
 	popup.queue_free()
@@ -423,54 +565,6 @@ func _color_for_hand_rank(rank: int) -> Color:
 			return Color(0.95, 0.78, 0.45)
 		_:
 			return Color(0.90, 0.90, 0.94)
-
-
-# --- per-placement bonuses (strategy depth) ---
-
-
-# Awards adjacency (same-rank +5, same-suit +3 per neighbor) and same-suit 2×2
-# square bonuses (+20 each) for the just-placed card, multiplied by the active
-# combo. Fires a single mini popup near the placement so the player can see why
-# the score moved.
-func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
-	if placed == null or placed.is_joker:
-		return
-	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
-
-	var adj_raw := _adjacency_bonus(col, row, placed)
-	var squares: Array = playfield.find_same_suit_squares_at(col, row)
-	var square_raw := squares.size() * 20
-	var raw_total := adj_raw + square_raw
-	if raw_total <= 0:
-		return
-
-	var earned := int(round(float(raw_total) * combo_mult))
-	score += earned
-	_refresh_score()
-
-	var rect: Rect2 = playfield.cell_local_rect(col, row)
-	var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
-	var color: Color = Color(0.70, 1.00, 0.85) if square_raw == 0 else Color(0.80, 0.95, 1.00)
-	_spawn_mini_popup("+%d" % earned, center, color)
-
-
-func _adjacency_bonus(col: int, row: int, placed: Card) -> int:
-	var bonus := 0
-	var neighbors := [
-		Vector2i(col - 1, row),
-		Vector2i(col + 1, row),
-		Vector2i(col, row - 1),
-		Vector2i(col, row + 1),
-	]
-	for n in neighbors:
-		var neighbor: Card = playfield.card_at(n.x, n.y)
-		if neighbor == null or neighbor.is_joker:
-			continue
-		if neighbor.rank == placed.rank:
-			bonus += 5
-		if neighbor.suit == placed.suit:
-			bonus += 3
-	return bonus
 
 
 func _spawn_mini_popup(text: String, world_pos: Vector2, color: Color) -> void:

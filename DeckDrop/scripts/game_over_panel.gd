@@ -10,6 +10,7 @@ extends Control
 signal play_again_pressed
 signal menu_pressed
 
+@onready var title_label: Label = $Panel/VBox/Title
 @onready var score_label: Label = $Panel/VBox/ScoreLabel
 @onready var best_badge: Label = $Panel/VBox/BestBadge
 @onready var best_hand_label: Label = $Panel/VBox/BestHandLabel
@@ -26,6 +27,14 @@ func _ready() -> void:
 
 
 func show_summary(data: Dictionary) -> void:
+	var reason: String = String(data.get("reason", "column_overflow"))
+	if reason == "dealer_won":
+		title_label.text = "DEALER WINS"
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.50))
+	else:
+		title_label.text = "GAME OVER"
+		title_label.add_theme_color_override("font_color", Color(0.96, 0.96, 0.96))
+
 	score_label.text = "Score  %d" % int(data.get("score", 0))
 	best_badge.visible = bool(data.get("is_new_best", false))
 
