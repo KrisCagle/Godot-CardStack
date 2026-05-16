@@ -1,16 +1,19 @@
 extends Control
-## The 5x8 play grid. Owns visual rendering (cell outlines) and column-tap input.
-## Emits `column_tapped(col)` for the game controller. No card data lives here yet.
+## The 5x8 play grid. Owns visual rendering (cell outlines + placed cards)
+## and column-tap input. Holds the canonical grid state — game.gd asks where
+## a card would land, then calls place_card after its drop animation finishes.
 
 const GRID_WIDTH := 5
 const GRID_HEIGHT := 8
+const CELL_PAD := 6.0
 
-const COLOR_CELL_FILL := Color(0.10, 0.12, 0.18, 1.0)
-const COLOR_CELL_LINE := Color(0.24, 0.30, 0.42, 1.0)
 const COLOR_FLASH := Color(0.45, 0.65, 1.0, 1.0)
 const FLASH_DURATION := 0.18
 
 signal column_tapped(col: int)
+
+# grid[col][row] -> Card or null. Row 0 is top, row GRID_HEIGHT-1 is bottom.
+var grid: Array = []
 
 var _flash_col: int = -1
 var _flash_t: float = 0.0
@@ -19,6 +22,52 @@ var _flash_t: float = 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_process(true)
+	_init_grid()
+
+
+func reset() -> void:
+	_init_grid()
+	queue_redraw()
+
+
+func lowest_empty_row(col: int) -> int:
+	if col < 0 or col >= GRID_WIDTH:
+		return -1
+	for y in range(GRID_HEIGHT - 1, -1, -1):
+		if grid[col][y] == null:
+			return y
+	return -1
+
+
+func place_card(card: Card, col: int) -> int:
+	var row := lowest_empty_row(col)
+	if row < 0:
+		return -1
+	grid[col][row] = card
+	queue_redraw()
+	return row
+
+
+func cell_local_rect(col: int, row: int) -> Rect2:
+	var cell_w := size.x / float(GRID_WIDTH)
+	var cell_h := size.y / float(GRID_HEIGHT)
+	return Rect2(
+		col * cell_w + CELL_PAD,
+		row * cell_h + CELL_PAD,
+		cell_w - CELL_PAD * 2.0,
+		cell_h - CELL_PAD * 2.0
+	)
+
+
+func _init_grid() -> void:
+	grid.clear()
+	grid.resize(GRID_WIDTH)
+	for x in GRID_WIDTH:
+		var col_array: Array = []
+		col_array.resize(GRID_HEIGHT)
+		for y in GRID_HEIGHT:
+			col_array[y] = null
+		grid[x] = col_array
 
 
 func _process(delta: float) -> void:
@@ -62,22 +111,17 @@ func _col_from_x(local_x: float) -> int:
 
 
 func _draw() -> void:
-	var cell_w := size.x / float(GRID_WIDTH)
-	var cell_h := size.y / float(GRID_HEIGHT)
-	var pad := 6.0
-
 	for x in GRID_WIDTH:
 		for y in GRID_HEIGHT:
-			var rect := Rect2(
-				x * cell_w + pad,
-				y * cell_h + pad,
-				cell_w - pad * 2.0,
-				cell_h - pad * 2.0
-			)
-			draw_rect(rect, COLOR_CELL_FILL, true)
-			draw_rect(rect, COLOR_CELL_LINE, false, 2.0)
+			var rect := cell_local_rect(x, y)
+			var card: Card = grid[x][y]
+			if card == null:
+				CardView.draw_empty_slot(self, rect)
+			else:
+				CardView.draw_card(self, card, rect)
 
 	if _flash_col >= 0 and _flash_t > 0.0:
+		var cell_w := size.x / float(GRID_WIDTH)
 		var alpha := (_flash_t / FLASH_DURATION) * 0.32
 		var flash_rect := Rect2(_flash_col * cell_w, 0.0, cell_w, size.y)
 		var c := COLOR_FLASH
