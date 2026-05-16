@@ -12,6 +12,11 @@ extends Control
 ## Game over: triggered when any column overflows (a card lands in row 0).
 ## End-of-run hands XP to SaveData (score/100 + first-time-hand bonuses) and
 ## shows the GameOverPanel with Play Again / Menu.
+##
+## Polish: every scoring hand spawns a floating popup ("FLUSH +135") that
+## drifts up and fades; cleared cells burst particles; cascade tiers ≥2 and
+## any hand at Four-of-a-Kind or rarer trigger a screen shake on the
+## playfield.
 
 const PREVIEW_SIZE := 3
 const DROP_DURATION := 0.26
@@ -61,6 +66,9 @@ var _combo_timer: float = 0.0
 var _best_hand_name: String = ""
 var _best_hand_score: int = 0
 var _hands_seen_this_run: Dictionary = {}
+
+var _shake_tween: Tween = null
+var _shake_orig: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -161,6 +169,9 @@ func _process_cascades() -> void:
 			break
 		cascade_tier += 1
 		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
+		if cascade_tier >= 2:
+			_shake(7.0, 0.18)
+
 		var all_cells: Array = []
 		for g in groups:
 			var earned := int(round(float(g.score) * tier_mult * combo_mult))
@@ -174,6 +185,11 @@ func _process_cascades() -> void:
 
 			print("[score] %s (%s) %d × tier %.1f × combo %.1f → %d  (total %d)" \
 				% [g.name, g.axis, g.score, tier_mult, combo_mult, earned, score])
+
+			_spawn_hand_popup(g, earned)
+			if int(g.rank) >= HandEvaluator.HandRank.FOUR_OF_A_KIND:
+				_shake(14.0, 0.30)
+
 		_refresh_score()
 
 		var seen: Dictionary = {}
@@ -182,6 +198,8 @@ func _process_cascades() -> void:
 			if not seen.has(c):
 				seen[c] = true
 				unique_cells.append(c)
+
+		_spawn_clear_particles(unique_cells)
 		playfield.clear_cells(unique_cells)
 		await get_tree().create_timer(CLEAR_DELAY).timeout
 		playfield.apply_gravity()
@@ -193,7 +211,6 @@ func _end_run() -> void:
 	_is_animating = false
 	_combo_timer = 0.0
 
-	# First-time hand bonuses: claim each new-to-player hand seen this run.
 	var first_time_bonus := 0
 	for hand_name in _hands_seen_this_run.keys():
 		var hn: String = hand_name
@@ -246,7 +263,6 @@ func _compute_tier(s: int) -> int:
 	return t
 
 
-# Tier 1-2 → 3 previews, 3-4 → 2, 5-6 → 1, 7+ → 0 (only current visible).
 func _active_preview_count() -> int:
 	if _tier <= 2:
 		return 3
@@ -301,6 +317,111 @@ func _refresh_combo_display() -> void:
 	if not alive:
 		fill = Color(0.25, 0.28, 0.36, 1.0)
 	combo_bar.modulate = fill
+
+
+# --- polish: popups, particles, screen shake ---
+
+
+func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
+	var popup := Label.new()
+	popup.text = "%s   +%d" % [String(g.name).to_upper(), earned]
+	popup.add_theme_font_size_override("font_size", 56)
+	var c := _color_for_hand_rank(int(g.rank))
+	popup.add_theme_color_override("font_color", c)
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	popup.add_theme_constant_override("outline_size", 10)
+	popup.z_index = 100
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	var center := _center_of_cells(g.get("cells", []))
+	popup.position = center - popup.size * 0.5
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.55, 0.55)
+	var start_y := popup.position.y
+
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(popup, "position:y", start_y - 160.0, 1.0) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.20) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.40).set_delay(0.55)
+
+	await tween.finished
+	popup.queue_free()
+
+
+func _spawn_clear_particles(cells: Array) -> void:
+	for cell in cells:
+		var p: Vector2i = cell
+		var rect := playfield.cell_local_rect(p.x, p.y)
+		var center := playfield.global_position + rect.position + rect.size * 0.5
+		var particles := CPUParticles2D.new()
+		particles.position = center
+		particles.amount = 14
+		particles.lifetime = 0.55
+		particles.one_shot = true
+		particles.explosiveness = 1.0
+		particles.direction = Vector2.UP
+		particles.spread = 180.0
+		particles.initial_velocity_min = 140.0
+		particles.initial_velocity_max = 290.0
+		particles.gravity = Vector2(0, 640)
+		particles.scale_amount_min = 3.0
+		particles.scale_amount_max = 6.0
+		particles.color = Color(1.0, 0.92, 0.65, 1.0)
+		particles.z_index = 50
+		add_child(particles)
+		particles.emitting = true
+		get_tree().create_timer(particles.lifetime + 0.3).timeout.connect(particles.queue_free)
+
+
+func _shake(intensity: float, duration: float) -> void:
+	if _shake_tween != null and _shake_tween.is_valid():
+		_shake_tween.kill()
+		playfield.position = _shake_orig
+	else:
+		_shake_orig = playfield.position
+
+	_shake_tween = create_tween()
+	var elapsed := 0.0
+	var step := 0.045
+	while elapsed < duration:
+		var amp := intensity * (1.0 - elapsed / duration)
+		var offset := Vector2(randf_range(-amp, amp), randf_range(-amp, amp))
+		_shake_tween.tween_property(playfield, "position", _shake_orig + offset, step)
+		elapsed += step
+	_shake_tween.tween_property(playfield, "position", _shake_orig, 0.05)
+
+
+func _center_of_cells(cells: Array) -> Vector2:
+	if cells.is_empty():
+		return playfield.global_position + playfield.size * 0.5
+	var sum := Vector2.ZERO
+	for cell in cells:
+		var p: Vector2i = cell
+		var rect := playfield.cell_local_rect(p.x, p.y)
+		sum += playfield.global_position + rect.position + rect.size * 0.5
+	return sum / float(cells.size())
+
+
+func _color_for_hand_rank(rank: int) -> Color:
+	match rank:
+		HandEvaluator.HandRank.ROYAL_FLUSH:
+			return Color(1.0, 0.85, 0.30)
+		HandEvaluator.HandRank.STRAIGHT_FLUSH:
+			return Color(0.95, 0.65, 0.30)
+		HandEvaluator.HandRank.FOUR_OF_A_KIND:
+			return Color(0.85, 0.40, 0.95)
+		HandEvaluator.HandRank.FULL_HOUSE:
+			return Color(0.40, 0.80, 0.95)
+		HandEvaluator.HandRank.FLUSH:
+			return Color(0.50, 0.88, 0.50)
+		HandEvaluator.HandRank.STRAIGHT:
+			return Color(0.95, 0.78, 0.45)
+		_:
+			return Color(0.90, 0.90, 0.94)
 
 
 func _on_play_again_pressed() -> void:
