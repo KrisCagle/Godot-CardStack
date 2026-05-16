@@ -50,6 +50,14 @@ func place_card(card: Card, col: int) -> int:
 	return row
 
 
+# True if any column has filled all 8 rows (Tetris-style overflow = game over).
+func is_any_column_full() -> bool:
+	for x in GRID_WIDTH:
+		if grid[x][0] != null:
+			return true
+	return false
+
+
 func cell_local_rect(col: int, row: int) -> Rect2:
 	var cell_w := size.x / float(GRID_WIDTH)
 	var cell_h := size.y / float(GRID_HEIGHT)
