@@ -355,8 +355,8 @@ func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
 func _spawn_clear_particles(cells: Array) -> void:
 	for cell in cells:
 		var p: Vector2i = cell
-		var rect := playfield.cell_local_rect(p.x, p.y)
-		var center := playfield.global_position + rect.position + rect.size * 0.5
+		var rect: Rect2 = playfield.cell_local_rect(p.x, p.y)
+		var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
 		var particles := CPUParticles2D.new()
 		particles.position = center
 		particles.amount = 14
@@ -401,7 +401,7 @@ func _center_of_cells(cells: Array) -> Vector2:
 	var sum := Vector2.ZERO
 	for cell in cells:
 		var p: Vector2i = cell
-		var rect := playfield.cell_local_rect(p.x, p.y)
+		var rect: Rect2 = playfield.cell_local_rect(p.x, p.y)
 		sum += playfield.global_position + rect.position + rect.size * 0.5
 	return sum / float(cells.size())
 
