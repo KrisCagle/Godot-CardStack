@@ -4,6 +4,10 @@ extends Control
 ## commits it, then runs the cascade loop. Difficulty ramps via TIER:
 ## score thresholds promote the run to higher tiers, and each tier shrinks
 ## the visible preview queue (less foresight = harder planning).
+##
+## Combo: each placement extends a 4-second timer and bumps the combo counter
+## by 1. Scoring multiplies by (1 + (combo - 1) × 0.2). Let the timer run out
+## and the next placement starts a fresh combo at 1.
 
 const PREVIEW_SIZE := 3
 const DROP_DURATION := 0.26
@@ -13,10 +17,15 @@ const GRAVITY_DELAY := 0.16
 # Tier T requires score >= TIER_THRESHOLDS[T-1] (tier 1 is always active at 0).
 const TIER_THRESHOLDS := [0, 500, 1500, 3000, 5000, 8000, 12000, 18000, 25000, 35000]
 
+const COMBO_TIME_MAX := 4.0
+const COMBO_INCREMENT := 0.2  # +20% scoring per combo level above 1
+
 @onready var playfield: Control = $PlayField
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var tier_label: Label = $HUD/TierLabel
 @onready var back_button: Button = $HUD/BackButton
+@onready var combo_bar: ProgressBar = $HUD/ComboBar
+@onready var combo_label: Label = $HUD/ComboLabel
 @onready var current_card_view: CardView = $TopArea/CurrentSlot
 @onready var preview_card_views: Array[CardView] = [
 	$BottomArea/Preview0,
@@ -30,6 +39,8 @@ var _preview: Array[Card] = []
 var _is_animating: bool = false
 var score: int = 0
 var _tier: int = 1
+var _combo: int = 0
+var _combo_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -46,18 +57,33 @@ func _start_new_game() -> void:
 	_current = _deck.draw_card()
 	score = 0
 	_tier = 1
+	_combo = 0
+	_combo_timer = 0.0
 	_is_animating = false
 	playfield.reset()
 	_refresh()
 
 
+func _process(delta: float) -> void:
+	if _combo_timer > 0.0:
+		_combo_timer = maxf(_combo_timer - delta, 0.0)
+		_refresh_combo_display()
+
+
 func _on_column_tapped(col: int) -> void:
 	if _is_animating or _current == null:
 		return
-	var target_row := playfield.lowest_empty_row(col)
+	var target_row: int = playfield.lowest_empty_row(col)
 	if target_row < 0:
 		print("[game] column %d full" % col)
 		return
+
+	# Combo update happens BEFORE scoring so the cascade picks up the new value.
+	if _combo_timer > 0.0:
+		_combo += 1
+	else:
+		_combo = 1
+
 	_is_animating = true
 	var placed := _current
 	await _animate_drop(placed, col, target_row)
@@ -65,6 +91,9 @@ func _on_column_tapped(col: int) -> void:
 	await _process_cascades()
 	_check_tier_up()
 	_advance_queue()
+
+	# Reset timer so the player gets a full window after cascades finish.
+	_combo_timer = COMBO_TIME_MAX
 	_refresh()
 	_is_animating = false
 
@@ -78,8 +107,8 @@ func _animate_drop(card: Card, col: int, row: int) -> void:
 
 	current_card_view.clear()
 
-	var target_rect := playfield.cell_local_rect(col, row)
-	var target_global := playfield.global_position + target_rect.position
+	var target_rect: Rect2 = playfield.cell_local_rect(col, row)
+	var target_global: Vector2 = playfield.global_position + target_rect.position
 
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(temp, "global_position", target_global, DROP_DURATION) \
@@ -93,6 +122,7 @@ func _animate_drop(card: Card, col: int, row: int) -> void:
 
 func _process_cascades() -> void:
 	var cascade_tier := 0
+	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
 	while true:
 		var groups: Array = playfield.find_scoring_groups()
 		if groups.is_empty():
@@ -101,11 +131,11 @@ func _process_cascades() -> void:
 		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
 		var all_cells: Array = []
 		for g in groups:
-			var earned := int(round(float(g.score) * tier_mult))
+			var earned := int(round(float(g.score) * tier_mult * combo_mult))
 			score += earned
 			all_cells.append_array(g.cells)
-			print("[score] %s (%s) %d × %.1f → %d  (total %d)" \
-				% [g.name, g.axis, g.score, tier_mult, earned, score])
+			print("[score] %s (%s) %d × tier %.1f × combo %.1f → %d  (total %d)" \
+				% [g.name, g.axis, g.score, tier_mult, combo_mult, earned, score])
 		_refresh_score()
 
 		var seen: Dictionary = {}
@@ -163,10 +193,34 @@ func _refresh() -> void:
 		slot.visible = i < visible
 		if i < visible:
 			slot.set_card(_preview[i])
+	_refresh_combo_display()
 
 
 func _refresh_score() -> void:
 	score_label.text = "Score  %d" % score
+
+
+func _refresh_combo_display() -> void:
+	combo_bar.max_value = COMBO_TIME_MAX
+	combo_bar.value = _combo_timer
+	var alive := _combo_timer > 0.0
+	if alive and _combo > 1:
+		combo_label.text = "COMBO ×%d" % _combo
+	else:
+		combo_label.text = ""
+
+	# Color shifts as timer drains: green → yellow → red.
+	var ratio := _combo_timer / COMBO_TIME_MAX if COMBO_TIME_MAX > 0.0 else 0.0
+	var fill: Color
+	if ratio > 0.66:
+		fill = Color(0.40, 0.85, 0.55, 1.0)
+	elif ratio > 0.33:
+		fill = Color(0.90, 0.78, 0.45, 1.0)
+	else:
+		fill = Color(0.90, 0.45, 0.50, 1.0)
+	if not alive:
+		fill = Color(0.25, 0.28, 0.36, 1.0)
+	combo_bar.modulate = fill
 
 
 func _on_back_pressed() -> void:
