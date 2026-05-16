@@ -1,10 +1,12 @@
 extends Control
-## The 5x8 play grid. Owns visual rendering (cell outlines + placed cards)
-## and column-tap input. Holds the canonical grid state — game.gd asks where
-## a card would land, then calls place_card after its drop animation finishes.
+## The 5x8 play grid. Owns visual rendering, column-tap input, and grid state.
+## Game.gd asks where a card would land, animates the drop, then commits the
+## card via place_card and runs the scoring/cascade loop using find_scoring_groups,
+## clear_cells, and apply_gravity.
 
 const GRID_WIDTH := 5
 const GRID_HEIGHT := 8
+const COL_WINDOW := 5  # Score the bottom N cards of any column when filled.
 const CELL_PAD := 6.0
 
 const COLOR_FLASH := Color(0.45, 0.65, 1.0, 1.0)
@@ -57,6 +59,96 @@ func cell_local_rect(col: int, row: int) -> Rect2:
 		cell_w - CELL_PAD * 2.0,
 		cell_h - CELL_PAD * 2.0
 	)
+
+
+# Scans the grid for scoring 5-card groups: every filled row + each column's
+# bottom 5 (when filled). Returns groups with score > 0 (HighCard skipped).
+# Each entry: {cells: Array[Vector2i], name, score, rank, multiplier, axis}.
+func find_scoring_groups() -> Array:
+	var groups: Array = []
+
+	for y in GRID_HEIGHT:
+		var row_cards: Array = []
+		var complete := true
+		for x in GRID_WIDTH:
+			var c: Card = grid[x][y]
+			if c == null:
+				complete = false
+				break
+			row_cards.append(c)
+		if not complete:
+			continue
+		var result: Dictionary = HandEvaluator.evaluate(row_cards)
+		if int(result.score) <= 0:
+			continue
+		var cells: Array = []
+		for x in GRID_WIDTH:
+			cells.append(Vector2i(x, y))
+		groups.append({
+			"cells": cells,
+			"name": result.name,
+			"score": int(result.score),
+			"rank": int(result.rank),
+			"multiplier": int(result.multiplier),
+			"axis": "row",
+		})
+
+	var start_y := GRID_HEIGHT - COL_WINDOW
+	for x in GRID_WIDTH:
+		var col_cards: Array = []
+		var complete := true
+		for y in range(start_y, GRID_HEIGHT):
+			var c: Card = grid[x][y]
+			if c == null:
+				complete = false
+				break
+			col_cards.append(c)
+		if not complete:
+			continue
+		var result: Dictionary = HandEvaluator.evaluate(col_cards)
+		if int(result.score) <= 0:
+			continue
+		var cells: Array = []
+		for y in range(start_y, GRID_HEIGHT):
+			cells.append(Vector2i(x, y))
+		groups.append({
+			"cells": cells,
+			"name": result.name,
+			"score": int(result.score),
+			"rank": int(result.rank),
+			"multiplier": int(result.multiplier),
+			"axis": "column",
+		})
+
+	return groups
+
+
+func clear_cells(cells: Array) -> void:
+	for cell in cells:
+		var p: Vector2i = cell
+		if p.x >= 0 and p.x < GRID_WIDTH and p.y >= 0 and p.y < GRID_HEIGHT:
+			grid[p.x][p.y] = null
+	queue_redraw()
+
+
+# Drops cards down so each column is bottom-aligned with no gaps.
+func apply_gravity() -> void:
+	for x in GRID_WIDTH:
+		var stack: Array = []
+		for y in GRID_HEIGHT:
+			if grid[x][y] != null:
+				stack.append(grid[x][y])
+		var write_y := GRID_HEIGHT - 1
+		for i in range(stack.size() - 1, -1, -1):
+			grid[x][write_y] = stack[i]
+			write_y -= 1
+		while write_y >= 0:
+			grid[x][write_y] = null
+			write_y -= 1
+	queue_redraw()
+
+
+# --- internals ---
 
 
 func _init_grid() -> void:
