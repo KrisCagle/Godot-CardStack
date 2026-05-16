@@ -1,0 +1,170 @@
+[gd_scene load_steps=4 format=3 uid="uid://deckdrop_game"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/playfield.gd" id="2_playfield"]
+[ext_resource type="Script" path="res://scripts/card_view.gd" id="3_cardview"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_game")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.07, 0.11, 1)
+
+[node name="HUD" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 130.0
+
+[node name="LevelLabel" type="Label" parent="HUD"]
+layout_mode = 1
+offset_left = 36.0
+offset_top = 35.0
+offset_right = 400.0
+offset_bottom = 100.0
+text = "Lv 1"
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 52
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -440.0
+offset_top = 35.0
+offset_right = -36.0
+offset_bottom = 100.0
+text = "Score  0"
+horizontal_alignment = 2
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 52
+
+[node name="BackButton" type="Button" parent="HUD"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -90.0
+offset_top = 35.0
+offset_right = 90.0
+offset_bottom = 100.0
+text = "Menu"
+theme_override_font_sizes/font_size = 32
+
+[node name="TopArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 130.0
+offset_bottom = 330.0
+
+[node name="CurrentLabel" type="Label" parent="TopArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 8.0
+offset_right = 120.0
+offset_bottom = 42.0
+modulate = Color(0.5, 0.56, 0.68, 1)
+text = "CURRENT"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+
+[node name="CurrentSlot" type="Control" parent="TopArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -70.0
+offset_top = 48.0
+offset_right = 70.0
+offset_bottom = 196.0
+script = ExtResource("3_cardview")
+
+[node name="PlayField" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 330.0
+offset_bottom = -370.0
+script = ExtResource("2_playfield")
+
+[node name="BottomArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -370.0
+offset_bottom = -150.0
+
+[node name="NextLabel" type="Label" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 8.0
+offset_right = 120.0
+offset_bottom = 42.0
+modulate = Color(0.5, 0.56, 0.68, 1)
+text = "NEXT →"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+
+[node name="Preview0" type="Control" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -148.0
+offset_top = 60.0
+offset_right = -68.0
+offset_bottom = 170.0
+script = ExtResource("3_cardview")
+
+[node name="Preview1" type="Control" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -40.0
+offset_top = 60.0
+offset_right = 40.0
+offset_bottom = 170.0
+script = ExtResource("3_cardview")
+
+[node name="Preview2" type="Control" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 68.0
+offset_top = 60.0
+offset_right = 148.0
+offset_bottom = 170.0
+script = ExtResource("3_cardview")
+
+[node name="AdPlaceholder" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -150.0
+color = Color(0.13, 0.15, 0.2, 1)
+
+[node name="AdLabel" type="Label" parent="AdPlaceholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+modulate = Color(0.38, 0.42, 0.52, 1)
+text = "[ ad placeholder · 1080 × 150 ]"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 32
