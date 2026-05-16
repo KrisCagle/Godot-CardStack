@@ -24,13 +24,13 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 130.0
 
-[node name="LevelLabel" type="Label" parent="HUD"]
+[node name="TierLabel" type="Label" parent="HUD"]
 layout_mode = 1
 offset_left = 36.0
 offset_top = 35.0
 offset_right = 400.0
 offset_bottom = 100.0
-text = "Lv 1"
+text = "Tier 1"
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 52
 

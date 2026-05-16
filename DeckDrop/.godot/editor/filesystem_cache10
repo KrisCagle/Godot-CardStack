@@ -1,0 +1,17 @@
+63f7b34db8d8cdea90c76aacccf841ec
+::res://::1778953509
+icon.svg::CompressedTexture2D::7334593583813911720::1778950027::1778953515::1::::<><><>0<>0<>38ae7412092aa0363a761501a5a0fa05<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
+::res://assets/::1778950011
+::res://scenes/::1778952185
+Game.tscn::PackedScene::-1::1778952185::0::1::::<><><>0<>0<><>::res://scripts/game.gd<>res://scripts/playfield.gd<>res://scripts/card_view.gd
+Title.tscn::PackedScene::-1::1778950060::0::1::::<><><>0<>0<><>::res://scripts/title.gd
+::res://scripts/::1778952688
+card.gd::GDScript::7603723949771748035::1778951829::0::1::::Card<>RefCounted<><>0<>0<><>::
+card_view.gd::GDScript::3332713736728557671::1778952138::0::1::::CardView<>Control<><>0<>0<><>::
+deck.gd::GDScript::7627332290503200816::1778951834::0::1::::Deck<>RefCounted<><>0<>0<><>::
+game.gd::GDScript::4828663476761670122::1778952688::0::1::::<>Control<><>0<>0<><>::
+hand_evaluator.gd::GDScript::3522976694493223970::1778952338::0::1::::HandEvaluator<>RefCounted<><>0<>0<><>::
+playfield.gd::GDScript::6786519706089726386::1778952671::0::1::::<>Control<><>0<>0<><>::
+save_data.gd::GDScript::3504425010505467536::1778950041::0::1::::<>Node<><>0<>0<><>::
+title.gd::GDScript::7011601598052303511::1778951532::0::1::::<>Control<><>0<>0<><>::
+::res://ui/::1778950011
