@@ -564,18 +564,18 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 func _detect_partial_hits(col: int, row: int) -> Array:
 	var hits: Array = []
 	# Horizontal windows (3 then 4 cells wide)
-	for size in [3, 4]:
-		for offset in size:
-			var start_col := col - offset
+	for size: int in [3, 4]:
+		for offset: int in size:
+			var start_col: int = col - offset
 			if start_col < 0 or start_col + size > PlayField.GRID_WIDTH:
 				continue
 			var hit := _check_partial_window(start_col, row, 1, 0, size)
 			if not hit.is_empty():
 				hits.append(hit)
 	# Vertical windows (3 then 4 cells tall)
-	for size in [3, 4]:
-		for offset in size:
-			var start_row := row - offset
+	for size: int in [3, 4]:
+		for offset: int in size:
+			var start_row: int = row - offset
 			if start_row < 0 or start_row + size > PlayField.GRID_HEIGHT:
 				continue
 			var hit := _check_partial_window(col, start_row, 0, 1, size)
