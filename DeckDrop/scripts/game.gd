@@ -144,12 +144,15 @@ func _on_column_tapped(col: int) -> void:
 	# Combo update happens BEFORE scoring so the cascade picks up the new value.
 	if _combo_timer > 0.0:
 		_combo += 1
+		if _combo == 2:
+			Sfx.play("combo")
 	else:
 		_combo = 1
 
 	_is_animating = true
 	var placed := _current
 	await _animate_drop(placed, col, target_row)
+	Sfx.play("place")
 	playfield.place_card(placed, col)
 	_apply_placement_bonuses(col, target_row, placed)
 	await _process_cascades()
@@ -202,6 +205,7 @@ func _process_cascades() -> void:
 		if groups.is_empty():
 			break
 		cascade_tier += 1
+		Sfx.play("clear")
 		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
 		if cascade_tier >= 2:
 			_shake(7.0, 0.18)
@@ -257,6 +261,7 @@ func _evaluate_round() -> void:
 		_refresh_score()
 		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
 			% [dealer_name, dealer_score, _round_best_score, bonus])
+		Sfx.play("win")
 		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
 		_shake(10.0, 0.22)
 		await get_tree().create_timer(0.55).timeout
@@ -268,6 +273,7 @@ func _evaluate_round() -> void:
 		# Lose — game over
 		print("[dealer] %s (%d) WINS — best %d not enough" \
 			% [dealer_name, dealer_score, _round_best_score])
+		Sfx.play("lose")
 		_spawn_dealer_popup("DEALER WINS!", Color(1.0, 0.40, 0.45))
 		_shake(18.0, 0.40)
 		await get_tree().create_timer(1.1).timeout
@@ -283,6 +289,8 @@ func _end_run(reason: String = "column_overflow") -> void:
 	_game_over = true
 	_is_animating = false
 	_combo_timer = 0.0
+	if reason == "column_overflow":
+		Sfx.play("game_over")
 
 	var first_time_bonus := 0
 	for hand_name in _hands_seen_this_run.keys():
@@ -379,6 +387,8 @@ func _drop_bomb(col: int) -> void:
 
 	if _combo_timer > 0.0:
 		_combo += 1
+		if _combo == 2:
+			Sfx.play("combo")
 	else:
 		_combo = 1
 
@@ -396,6 +406,7 @@ func _drop_bomb(col: int) -> void:
 	if not cells_to_clear.is_empty():
 		_spawn_clear_particles(cells_to_clear)
 		playfield.clear_cells(cells_to_clear)
+	Sfx.play("boom")
 	_shake(16.0, 0.36)
 	_spawn_bomb_popup(col)
 	await get_tree().create_timer(0.30).timeout
