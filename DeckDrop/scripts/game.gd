@@ -529,7 +529,12 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 	var adj_raw := _adjacency_bonus(col, row, placed)
 	var squares: Array = playfield.find_same_suit_squares_at(col, row)
 	var square_raw := squares.size() * 20
-	var raw_total := adj_raw + square_raw
+	var partial_hits: Array = _detect_partial_hits(col, row)
+	var partial_raw := 0
+	for h in partial_hits:
+		partial_raw += int(h.bonus)
+
+	var raw_total := adj_raw + square_raw + partial_raw
 	if raw_total <= 0:
 		return
 
@@ -537,10 +542,97 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 	score += earned
 	_refresh_score()
 
-	var rect: Rect2 = playfield.cell_local_rect(col, row)
-	var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
-	var color: Color = Color(0.70, 1.00, 0.85) if square_raw == 0 else Color(0.80, 0.95, 1.00)
-	_spawn_mini_popup("+%d" % earned, center, color)
+	# Per-partial popups: each line-partial gets its own labeled float-up.
+	for h in partial_hits:
+		var multiplied := int(round(float(h.bonus) * combo_mult))
+		_spawn_mini_popup("%s +%d" % [String(h.name), multiplied],
+			_center_of_cells(h.cells), h.color)
+
+	# Aggregate adjacency/squares popup at placement cell — only when no
+	# partials fired, otherwise the screen gets noisy with overlapping text.
+	if partial_hits.is_empty():
+		var rect: Rect2 = playfield.cell_local_rect(col, row)
+		var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+		var color: Color = Color(0.70, 1.00, 0.85) if square_raw == 0 else Color(0.80, 0.95, 1.00)
+		_spawn_mini_popup("+%d" % earned, center, color)
+
+
+# Returns a list of {name, bonus, color, cells} for every 3-card or 4-card line
+# window containing (col, row) that matches a partial pattern. Skipped if the
+# placed cell or any window cell is a Joker/Bomb (specials don't count toward
+# partials).
+func _detect_partial_hits(col: int, row: int) -> Array:
+	var hits: Array = []
+	# Horizontal windows (3 then 4 cells wide)
+	for size in [3, 4]:
+		for offset in size:
+			var start_col := col - offset
+			if start_col < 0 or start_col + size > PlayField.GRID_WIDTH:
+				continue
+			var hit := _check_partial_window(start_col, row, 1, 0, size)
+			if not hit.is_empty():
+				hits.append(hit)
+	# Vertical windows (3 then 4 cells tall)
+	for size in [3, 4]:
+		for offset in size:
+			var start_row := row - offset
+			if start_row < 0 or start_row + size > PlayField.GRID_HEIGHT:
+				continue
+			var hit := _check_partial_window(col, start_row, 0, 1, size)
+			if not hit.is_empty():
+				hits.append(hit)
+	return hits
+
+
+# Checks a single window starting at (start_col, start_row) of `size` cells
+# stepping by (dx, dy). Returns {} if not a partial, else the classification
+# dict with `cells` populated.
+func _check_partial_window(start_col: int, start_row: int, dx: int, dy: int, size: int) -> Dictionary:
+	var cells: Array = []
+	var cards: Array = []
+	for i in size:
+		var c: Card = playfield.card_at(start_col + dx * i, start_row + dy * i)
+		if c == null or c.is_special:
+			return {}
+		cards.append(c)
+		cells.append(Vector2i(start_col + dx * i, start_row + dy * i))
+	var classification := _classify_partial(cards)
+	if int(classification.get("bonus", 0)) <= 0:
+		return {}
+	classification["cells"] = cells
+	return classification
+
+
+# Returns {name, bonus, color}. bonus=0 if cards don't form a partial pattern.
+# 3-card patterns: only Mini Trips (3 same rank).
+# 4-card patterns: Flush+ (4 same suit) or Straight+ (4 consecutive distinct ranks).
+func _classify_partial(cards: Array) -> Dictionary:
+	var size := cards.size()
+	if size == 3:
+		if cards[0].rank == cards[1].rank and cards[1].rank == cards[2].rank:
+			return {"name": "MINI TRIPS", "bonus": 30, "color": Color(1.00, 0.65, 0.95)}
+		return {"name": "", "bonus": 0, "color": Color.WHITE}
+	if size == 4:
+		var same_suit := true
+		for i in range(1, 4):
+			if cards[i].suit != cards[0].suit:
+				same_suit = false
+				break
+		if same_suit:
+			return {"name": "FLUSH+", "bonus": 50, "color": Color(0.50, 0.95, 0.60)}
+		var ranks: Array = []
+		for c in cards:
+			ranks.append(c.rank)
+		ranks.sort()
+		var distinct := true
+		for i in range(1, 4):
+			if ranks[i] == ranks[i - 1]:
+				distinct = false
+				break
+		if distinct and ranks[3] - ranks[0] == 3:
+			return {"name": "STRAIGHT+", "bonus": 50, "color": Color(1.00, 0.85, 0.40)}
+		return {"name": "", "bonus": 0, "color": Color.WHITE}
+	return {"name": "", "bonus": 0, "color": Color.WHITE}
 
 
 func _adjacency_bonus(col: int, row: int, placed: Card) -> int:
