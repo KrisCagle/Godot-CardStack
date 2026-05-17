@@ -60,6 +60,7 @@ const FIRST_TIME_BONUSES := {
 @onready var game_over_panel: Control = $GameOverPanel
 
 var _deck: Deck
+var _specials_rng: RandomNumberGenerator = null
 var _current: Card = null
 var _preview: Array[Card] = []
 var _is_animating: bool = false
@@ -96,7 +97,19 @@ func _ready() -> void:
 
 
 func _start_new_game() -> void:
-	_deck = Deck.new()
+	# Daily mode uses a deterministic seed derived from today's date — every
+	# player gets the same deck order AND the same Joker/Bomb positions.
+	var seed_value := 0
+	if MatchState.is_daily():
+		seed_value = MatchState.daily_seed_for(MatchState.daily_date)
+	_deck = Deck.new(seed_value)
+	_specials_rng = RandomNumberGenerator.new()
+	if seed_value != 0:
+		# Offset so deck and specials don't draw correlated values from the
+		# same stream. Both are still deterministic per-date.
+		_specials_rng.seed = seed_value + 0x9E3779B9
+	else:
+		_specials_rng.randomize()
 	score = 0
 	_tier = 1
 	_combo = 0
@@ -121,7 +134,8 @@ func _start_new_game() -> void:
 	playfield.reset()
 	game_over_panel.hide_summary()
 	_refresh()
-	_show_round_splash("ROUND 1")
+	var splash_prefix := "DAILY · " if MatchState.is_daily() else ""
+	_show_round_splash("%sROUND 1" % splash_prefix)
 
 
 func _process(delta: float) -> void:
@@ -318,7 +332,7 @@ func _end_run(reason: String = "column_overflow") -> void:
 	var total_xp: int = xp_from_score + first_time_bonus
 	var previous_level: int = SaveData.level
 	var add_result: Dictionary = SaveData.add_xp(total_xp)
-	var is_new_best: bool = SaveData.record_score(score, _today_date())
+	var is_new_best: bool = SaveData.record_score(score, MatchState.score_date_for_current_run())
 
 	# Lifetime stat rollup
 	SaveData.increment_stat("total_runs")
@@ -384,8 +398,11 @@ func _advance_queue() -> void:
 
 func _draw_card_with_specials() -> Card:
 	var chance := _special_chance_for_tier(_tier)
-	if randf() < chance:
-		if randf() < 0.6:
+	# Use the seeded _specials_rng so daily-mode special placements are
+	# deterministic too — without this, two players on the same daily seed
+	# could see different Joker/Bomb positions.
+	if _specials_rng.randf() < chance:
+		if _specials_rng.randf() < 0.6:
 			return Card.make_joker()
 		return Card.make_bomb()
 	return _deck.draw_card()

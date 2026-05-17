@@ -6,6 +6,7 @@ extends Control
 signal close_pressed
 
 @onready var stats_vbox: VBoxContainer = $Panel/VBox/StatsSection/StatsVBox
+@onready var daily_vbox: VBoxContainer = $Panel/VBox/DailySection/DailyVBox
 @onready var themes_vbox: VBoxContainer = $Panel/VBox/ThemesSection/ThemesVBox
 @onready var achievements_vbox: VBoxContainer = $Panel/VBox/AchievementsSection/AchievementsScroll/AchievementsVBox
 @onready var unlocked_label: Label = $Panel/VBox/AchievementsSection/UnlockedLabel
@@ -19,6 +20,7 @@ func _ready() -> void:
 
 func show_progress() -> void:
 	_populate_stats()
+	_populate_daily_history()
 	_populate_themes()
 	_populate_achievements()
 	visible = true
@@ -63,6 +65,54 @@ func _populate_stats() -> void:
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(value)
 		stats_vbox.add_child(row)
+
+
+func _populate_daily_history() -> void:
+	for c in daily_vbox.get_children():
+		c.queue_free()
+
+	var dates: Array = SaveData.daily_scores.keys()
+	dates.sort()
+	dates.reverse()  # most recent first
+	var today := MatchState.today_date_str()
+	var shown := 0
+
+	for date in dates:
+		if shown >= 7:
+			break
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = SIZE_EXPAND_FILL
+
+		var date_text := String(date)
+		var date_label := Label.new()
+		date_label.add_theme_font_size_override("font_size", 28)
+		date_label.size_flags_horizontal = SIZE_EXPAND_FILL
+		if date_text == today:
+			date_label.text = "  %s   (today)" % date_text
+			date_label.modulate = Color(1.00, 0.95, 0.55)
+		else:
+			date_label.text = "  %s" % date_text
+			date_label.modulate = Color(0.72, 0.77, 0.90)
+		row.add_child(date_label)
+
+		var score_label := Label.new()
+		score_label.text = "%d   " % int(SaveData.daily_scores[date])
+		score_label.add_theme_font_size_override("font_size", 28)
+		score_label.modulate = Color(1.00, 0.95, 0.70)
+		score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(score_label)
+
+		daily_vbox.add_child(row)
+		shown += 1
+
+	if shown == 0:
+		var empty := Label.new()
+		empty.text = "No daily runs yet — tap DAILY on the title to start."
+		empty.add_theme_font_size_override("font_size", 24)
+		empty.modulate = Color(0.55, 0.60, 0.72)
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		daily_vbox.add_child(empty)
 
 
 func _populate_themes() -> void:

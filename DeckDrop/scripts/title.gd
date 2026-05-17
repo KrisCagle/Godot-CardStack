@@ -5,6 +5,7 @@ extends Control
 @onready var best_label: Label = $CenterColumn/BestLabel
 @onready var next_unlock_label: Label = $CenterColumn/NextUnlockLabel
 @onready var play_button: Button = $CenterColumn/PlayButton
+@onready var daily_button: Button = $CenterColumn/DailyButton
 @onready var progress_button: Button = $CenterColumn/ProgressButton
 
 const PROGRESS_PANEL_SCENE := preload("res://scenes/ProgressPanel.tscn")
@@ -13,6 +14,7 @@ var _progress_panel: Control = null
 
 func _ready() -> void:
 	play_button.pressed.connect(_on_play_pressed)
+	daily_button.pressed.connect(_on_daily_pressed)
 	progress_button.pressed.connect(_on_progress_pressed)
 	_refresh()
 
@@ -33,8 +35,22 @@ func _refresh() -> void:
 			[String(next_unlock.name), int(next_unlock.unlock_level)]
 		next_unlock_label.modulate = Color(0.65, 0.78, 0.95)
 
+	# Daily button shows today's best score if the player already attempted it.
+	var today := MatchState.today_date_str()
+	var today_best: int = int(SaveData.daily_scores.get(today, 0))
+	if today_best > 0:
+		daily_button.text = "🗓  DAILY · %d" % today_best
+	else:
+		daily_button.text = "🗓  DAILY"
+
 
 func _on_play_pressed() -> void:
+	MatchState.launch_standard()
+	get_tree().change_scene_to_file("res://scenes/Game.tscn")
+
+
+func _on_daily_pressed() -> void:
+	MatchState.launch_daily()
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
 

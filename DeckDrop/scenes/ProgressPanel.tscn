@@ -63,6 +63,25 @@ theme_override_constants/separation = 4
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
+[node name="DailySection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DailyTitle" type="Label" parent="Panel/VBox/DailySection"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "DAILY HISTORY"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="DailyVBox" type="VBoxContainer" parent="Panel/VBox/DailySection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SpacerB" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
 [node name="ThemesSection" type="VBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 6
