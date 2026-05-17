@@ -15,6 +15,10 @@ extends Control
 ## Game over: triggered by column overflow OR dealer-round loss. End-of-run
 ## hands XP to SaveData (score/100 + first-time-hand bonuses) and shows the
 ## GameOverPanel with the relevant reason.
+##
+## Lifetime stats + Achievements: events through the run feed into SaveData
+## counters and unlock checks. Newly-unlocked achievements pop a gold toast
+## mid-screen and grant their bonus XP immediately.
 
 const PREVIEW_SIZE := 3
 const DROP_DURATION := 0.26
@@ -72,7 +76,8 @@ var _hands_seen_this_run: Dictionary = {}
 var _dealer_target: Dictionary = {}
 var _round_placements: int = 0
 var _round_best_score: int = 0
-var _dealer_tier: int = 1  # what tier dealer is currently scaled to
+var _dealer_tier: int = 1
+var _run_placements: int = 0  # total placements this run (for stats)
 
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
@@ -105,10 +110,10 @@ func _start_new_game() -> void:
 	_round_best_score = 0
 	_dealer_tier = 1
 	_dealer_target = Dealer.target_for_tier(_dealer_tier)
+	_run_placements = 0
 	_displayed_score = 0
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
-	# Now draw initial hand (tier-aware so specials can appear from card 1).
 	_preview.clear()
 	for i in PREVIEW_SIZE:
 		_preview.append(_draw_card_with_specials())
@@ -131,7 +136,6 @@ func _on_column_tapped(col: int) -> void:
 	if _is_animating or _game_over or _current == null:
 		return
 
-	# Bombs follow a different placement path: drop into any column, clear it.
 	if _current.is_bomb:
 		await _drop_bomb(col)
 		return
@@ -141,13 +145,7 @@ func _on_column_tapped(col: int) -> void:
 		print("[game] column %d full" % col)
 		return
 
-	# Combo update happens BEFORE scoring so the cascade picks up the new value.
-	if _combo_timer > 0.0:
-		_combo += 1
-		if _combo == 2:
-			Sfx.play("combo")
-	else:
-		_combo = 1
+	_update_combo_state()
 
 	_is_animating = true
 	var placed := _current
@@ -155,6 +153,7 @@ func _on_column_tapped(col: int) -> void:
 	Sfx.play("place")
 	playfield.place_card(placed, col)
 	_apply_placement_bonuses(col, target_row, placed)
+	_on_placement_recorded(placed)
 	await _process_cascades()
 	_check_tier_up()
 
@@ -162,7 +161,6 @@ func _on_column_tapped(col: int) -> void:
 		_end_run("column_overflow")
 		return
 
-	# Dealer round
 	_round_placements += 1
 	if _round_placements >= ROUND_LENGTH:
 		await _evaluate_round()
@@ -206,6 +204,9 @@ func _process_cascades() -> void:
 			break
 		cascade_tier += 1
 		Sfx.play("clear")
+		SaveData.update_max_stat("highest_cascade_tier", cascade_tier)
+		if cascade_tier >= 3:
+			_try_achievement("triple_cascade")
 		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
 		if cascade_tier >= 2:
 			_shake(7.0, 0.18)
@@ -222,6 +223,17 @@ func _process_cascades() -> void:
 			if earned > _round_best_score:
 				_round_best_score = earned
 			_hands_seen_this_run[String(g.name)] = int(_hands_seen_this_run.get(g.name, 0)) + 1
+			SaveData.increment_stat("total_hands_cleared")
+
+			# Achievement: Royal Flush ever, Wild Thing if a Joker contributed.
+			if int(g.rank) == HandEvaluator.HandRank.ROYAL_FLUSH:
+				_try_achievement("royal_flush")
+			for cell in g.cells:
+				var p: Vector2i = cell
+				var c: Card = playfield.card_at(p.x, p.y)
+				if c != null and c.is_joker:
+					_try_achievement("wild_thing")
+					break
 
 			print("[score] %s (%s) %d × tier %.1f × combo %.1f → %d  (total %d)" \
 				% [g.name, g.axis, g.score, tier_mult, combo_mult, earned, score])
@@ -232,6 +244,8 @@ func _process_cascades() -> void:
 				_shake(14.0, 0.30)
 
 		_refresh_score()
+		if score >= 5000:
+			_try_achievement("big_spender")
 
 		var seen: Dictionary = {}
 		var unique_cells: Array = []
@@ -240,7 +254,6 @@ func _process_cascades() -> void:
 				seen[c] = true
 				unique_cells.append(c)
 
-		# Hold so the glow is visible before cells vanish.
 		await get_tree().create_timer(0.18).timeout
 		_spawn_clear_particles(unique_cells)
 		playfield.clear_cells(unique_cells)
@@ -249,28 +262,28 @@ func _process_cascades() -> void:
 		await get_tree().create_timer(GRAVITY_DELAY).timeout
 
 
-# Evaluates the dealer round. Caller awaits — may end the run if player lost.
 func _evaluate_round() -> void:
 	var dealer_score: int = int(_dealer_target.get("score", 0))
 	var dealer_name: String = String(_dealer_target.get("name", "?"))
 
 	if _round_best_score > dealer_score:
-		# Win
 		var bonus := int(round(float(dealer_score) * 0.5))
 		score += bonus
 		_refresh_score()
 		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
 			% [dealer_name, dealer_score, _round_best_score, bonus])
 		Sfx.play("win")
+		_try_achievement("first_dealer")
 		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
 		_shake(10.0, 0.22)
 		await get_tree().create_timer(0.55).timeout
-		# Scale up dealer for next round.
 		_dealer_tier += 1
 		_dealer_target = Dealer.target_for_tier(_dealer_tier)
+		SaveData.update_max_stat("highest_dealer_tier", _dealer_tier)
+		if _dealer_tier >= 5:
+			_try_achievement("marathon")
 		_show_round_splash("ROUND %d" % _dealer_tier)
 	else:
-		# Lose — game over
 		print("[dealer] %s (%d) WINS — best %d not enough" \
 			% [dealer_name, dealer_score, _round_best_score])
 		Sfx.play("lose")
@@ -306,6 +319,13 @@ func _end_run(reason: String = "column_overflow") -> void:
 	var previous_level: int = SaveData.level
 	var add_result: Dictionary = SaveData.add_xp(total_xp)
 	var is_new_best: bool = SaveData.record_score(score, _today_date())
+
+	# Lifetime stat rollup
+	SaveData.increment_stat("total_runs")
+	SaveData.increment_stat("total_score", score)
+	SaveData.update_max_stat("longest_run_placements", _run_placements)
+	if SaveData.level >= 10:
+		_try_achievement("centenarian")
 
 	print("[run] over (%s) · score %d · xp +%d (score %d + hands %d)" \
 		% [reason, score, total_xp, xp_from_score, first_time_bonus])
@@ -362,9 +382,6 @@ func _advance_queue() -> void:
 	_preview[PREVIEW_SIZE - 1] = _draw_card_with_specials()
 
 
-# Draws the next card, occasionally substituting a Joker or Bomb. Chance scales
-# with the player's current tier: 2.5% at T1 climbing to ~6% at T8+. Among
-# specials, 60% are Jokers, 40% are Bombs.
 func _draw_card_with_specials() -> Card:
 	var chance := _special_chance_for_tier(_tier)
 	if randf() < chance:
@@ -378,21 +395,12 @@ func _special_chance_for_tier(t: int) -> float:
 	return clampf(0.025 + float(t - 1) * 0.005, 0.025, 0.065)
 
 
-# Bomb path: animates into the column, then clears the whole column. Doesn't
-# score, doesn't trigger cascades, but still counts as a placement for the
-# combo timer and the dealer-round counter.
 func _drop_bomb(col: int) -> void:
 	_is_animating = true
 	var bomb := _current
 
-	if _combo_timer > 0.0:
-		_combo += 1
-		if _combo == 2:
-			Sfx.play("combo")
-	else:
-		_combo = 1
+	_update_combo_state()
 
-	# Visual target: lowest empty row, or row 0 if column already full.
 	var visual_row: int = playfield.lowest_empty_row(col)
 	if visual_row < 0:
 		visual_row = 0
@@ -409,6 +417,9 @@ func _drop_bomb(col: int) -> void:
 	Sfx.play("boom")
 	_shake(16.0, 0.36)
 	_spawn_bomb_popup(col)
+	_on_placement_recorded(bomb)
+	SaveData.increment_stat("total_bombs_played")
+	_try_achievement("bombs_away")
 	await get_tree().create_timer(0.30).timeout
 
 	_round_placements += 1
@@ -421,6 +432,72 @@ func _drop_bomb(col: int) -> void:
 	_combo_timer = COMBO_TIME_MAX
 	_refresh()
 	_is_animating = false
+
+
+# Per-placement bookkeeping: stats, joker count.
+func _on_placement_recorded(placed: Card) -> void:
+	_run_placements += 1
+	SaveData.increment_stat("total_cards_placed")
+	if placed != null and placed.is_joker:
+		SaveData.increment_stat("total_jokers_played")
+
+
+# Centralized combo update so the bomb and normal-placement paths share rules.
+# Bumps combo, plays SFX on first crossing into ≥2, claims Hot Streak at ≥5,
+# and updates the lifetime highest_combo stat.
+func _update_combo_state() -> void:
+	if _combo_timer > 0.0:
+		_combo += 1
+		if _combo == 2:
+			Sfx.play("combo")
+		if _combo >= 5:
+			_try_achievement("hot_streak")
+	else:
+		_combo = 1
+	SaveData.update_max_stat("highest_combo", _combo)
+
+
+# Claims an achievement; if newly unlocked, awards its XP and pops the toast.
+func _try_achievement(id: String) -> void:
+	if not SaveData.claim_achievement(id):
+		return
+	var a := Achievements.by_id(id)
+	if a.is_empty():
+		return
+	var xp_award: int = int(a.get("xp", 0))
+	if xp_award > 0:
+		SaveData.add_xp(xp_award)
+	_spawn_achievement_popup(a)
+	print("[achievement] unlocked: %s (+%d xp)" % [String(a.get("name", id)), xp_award])
+
+
+# Mid-screen gold toast for an achievement unlock.
+func _spawn_achievement_popup(a: Dictionary) -> void:
+	var popup := Label.new()
+	popup.text = "🏆 %s   +%d XP" % [String(a.get("name", "")), int(a.get("xp", 0))]
+	popup.add_theme_font_size_override("font_size", 56)
+	popup.add_theme_color_override("font_color", Color(1.0, 0.85, 0.30))
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	popup.add_theme_constant_override("outline_size", 12)
+	popup.z_index = 130
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	popup.position = Vector2((size.x - popup.size.x) * 0.5, 320.0)
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.45, 0.45)
+	popup.modulate.a = 0.0
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.30) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "modulate:a", 1.0, 0.20)
+	t.tween_property(popup, "position:y", 240.0, 1.40).set_delay(0.30)
+	t.tween_property(popup, "modulate:a", 0.0, 0.45).set_delay(1.40)
+
+	await t.finished
+	popup.queue_free()
 
 
 func _spawn_bomb_popup(col: int) -> void:
@@ -487,7 +564,6 @@ func _refresh_dealer_hud() -> void:
 	dealer_info_label.text = "⚔ DEALER: %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
 	var left := ROUND_LENGTH - _round_placements
 	round_counter_label.text = "%d LEFT" % left
-	# Color round counter by urgency
 	if left <= 1:
 		round_counter_label.modulate = Color(1.0, 0.4, 0.45)
 	elif left <= 2:
@@ -542,14 +618,11 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 	score += earned
 	_refresh_score()
 
-	# Per-partial popups: each line-partial gets its own labeled float-up.
 	for h in partial_hits:
 		var multiplied := int(round(float(h.bonus) * combo_mult))
 		_spawn_mini_popup("%s +%d" % [String(h.name), multiplied],
 			_center_of_cells(h.cells), h.color)
 
-	# Aggregate adjacency/squares popup at placement cell — only when no
-	# partials fired, otherwise the screen gets noisy with overlapping text.
 	if partial_hits.is_empty():
 		var rect: Rect2 = playfield.cell_local_rect(col, row)
 		var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
@@ -557,13 +630,8 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 		_spawn_mini_popup("+%d" % earned, center, color)
 
 
-# Returns a list of {name, bonus, color, cells} for every 3-card or 4-card line
-# window containing (col, row) that matches a partial pattern. Skipped if the
-# placed cell or any window cell is a Joker/Bomb (specials don't count toward
-# partials).
 func _detect_partial_hits(col: int, row: int) -> Array:
 	var hits: Array = []
-	# Horizontal windows (3 then 4 cells wide)
 	for size: int in [3, 4]:
 		for offset: int in size:
 			var start_col: int = col - offset
@@ -572,7 +640,6 @@ func _detect_partial_hits(col: int, row: int) -> Array:
 			var hit := _check_partial_window(start_col, row, 1, 0, size)
 			if not hit.is_empty():
 				hits.append(hit)
-	# Vertical windows (3 then 4 cells tall)
 	for size: int in [3, 4]:
 		for offset: int in size:
 			var start_row: int = row - offset
@@ -584,9 +651,6 @@ func _detect_partial_hits(col: int, row: int) -> Array:
 	return hits
 
 
-# Checks a single window starting at (start_col, start_row) of `size` cells
-# stepping by (dx, dy). Returns {} if not a partial, else the classification
-# dict with `cells` populated.
 func _check_partial_window(start_col: int, start_row: int, dx: int, dy: int, size: int) -> Dictionary:
 	var cells: Array = []
 	var cards: Array = []
@@ -603,9 +667,6 @@ func _check_partial_window(start_col: int, start_row: int, dx: int, dy: int, siz
 	return classification
 
 
-# Returns {name, bonus, color}. bonus=0 if cards don't form a partial pattern.
-# 3-card patterns: only Mini Trips (3 same rank).
-# 4-card patterns: Flush+ (4 same suit) or Straight+ (4 consecutive distinct ranks).
 func _classify_partial(cards: Array) -> Dictionary:
 	var size := cards.size()
 	if size == 3:
@@ -687,7 +748,6 @@ func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
 	popup.queue_free()
 
 
-# Big screen-centered popup for dealer round outcomes.
 func _spawn_dealer_popup(text: String, color: Color) -> void:
 	var popup := Label.new()
 	popup.text = text

@@ -82,6 +82,12 @@ layout_mode = 2
 text = "PLAY"
 theme_override_font_sizes/font_size = 72
 
+[node name="ProgressButton" type="Button" parent="CenterColumn"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+text = "PROGRESS"
+theme_override_font_sizes/font_size = 48
+
 [node name="AdPlaceholder" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 12
