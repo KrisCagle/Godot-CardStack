@@ -74,8 +74,20 @@ func cell_local_rect(col: int, row: int) -> Rect2:
 
 
 # Scans the grid for scoring 5-card groups: every filled row + each column's
-# bottom 5 (when filled). Returns groups with score > 0 (HighCard skipped).
-# Each entry: {cells: Array[Vector2i], name, score, rank, multiplier, axis}.
+# bottom 5 + every full 5-card diagonal. Returns groups with score > 0
+# (HighCard skipped).
+#
+# `cells` is the SUBSET of the 5-card line that should actually clear, based
+# on hand strength:
+#   - Pair        → 2 cells (the pair, kickers stay)
+#   - Two Pair    → 4 cells (both pairs, kicker stays)
+#   - Three of a Kind → 3 cells (the trips, kickers stay)
+#   - Four of a Kind → 4 cells (the quads, kicker stays)
+#   - Straight / Flush / Full House / Straight Flush / Royal Flush → all 5
+#   - Hands with any Joker → all 5 (we can't tell which rank it substituted for)
+#
+# The full poker score still applies — the kickers staying is purely a board-
+# state choice that gives the "stack up for low hands, sweep for big hands" feel.
 func find_scoring_groups() -> Array:
 	var groups: Array = []
 
@@ -94,8 +106,8 @@ func find_scoring_groups() -> Array:
 		if int(result.score) <= 0:
 			continue
 		var cells: Array = []
-		for x in GRID_WIDTH:
-			cells.append(Vector2i(x, y))
+		for i in _clearing_indices(row_cards, int(result.rank)):
+			cells.append(Vector2i(i, y))
 		groups.append({
 			"cells": cells,
 			"name": result.name,
@@ -121,8 +133,8 @@ func find_scoring_groups() -> Array:
 		if int(result.score) <= 0:
 			continue
 		var cells: Array = []
-		for y in range(start_y, GRID_HEIGHT):
-			cells.append(Vector2i(x, y))
+		for i in _clearing_indices(col_cards, int(result.rank)):
+			cells.append(Vector2i(x, start_y + i))
 		groups.append({
 			"cells": cells,
 			"name": result.name,
@@ -132,7 +144,7 @@ func find_scoring_groups() -> Array:
 			"axis": "column",
 		})
 
-	# Diagonals (down-right: \) — with width 5, only one x-start fits.
+	# Diagonals (down-right: \)
 	for y_start in range(GRID_HEIGHT - 4):
 		var diag_cards: Array = []
 		var complete := true
@@ -148,7 +160,7 @@ func find_scoring_groups() -> Array:
 		if int(result.score) <= 0:
 			continue
 		var cells: Array = []
-		for i in 5:
+		for i in _clearing_indices(diag_cards, int(result.rank)):
 			cells.append(Vector2i(i, y_start + i))
 		groups.append({
 			"cells": cells,
@@ -175,7 +187,7 @@ func find_scoring_groups() -> Array:
 		if int(result.score) <= 0:
 			continue
 		var cells: Array = []
-		for i in 5:
+		for i in _clearing_indices(diag_cards, int(result.rank)):
 			cells.append(Vector2i(GRID_WIDTH - 1 - i, y_start + i))
 		groups.append({
 			"cells": cells,
@@ -187,6 +199,42 @@ func find_scoring_groups() -> Array:
 		})
 
 	return groups
+
+
+# Returns the indices (0..4) within a 5-card line that should clear, given the
+# poker rank the line evaluated to. Lower hands clear only matched cards (pair,
+# trips, quads); fuller patterns (straight, flush, full house, +) sweep all 5.
+# Any joker in the line forces a full sweep — we can't pinpoint which cells
+# "belonged to" the wild substitution.
+static func _clearing_indices(cards: Array, rank: int) -> Array:
+	for c in cards:
+		if c.is_joker:
+			return [0, 1, 2, 3, 4]
+	match rank:
+		HandEvaluator.HandRank.PAIR:
+			return _indices_with_rank_count(cards, 2)
+		HandEvaluator.HandRank.TWO_PAIR:
+			return _indices_with_rank_count(cards, 2)
+		HandEvaluator.HandRank.THREE_OF_A_KIND:
+			return _indices_with_rank_count(cards, 3)
+		HandEvaluator.HandRank.FOUR_OF_A_KIND:
+			return _indices_with_rank_count(cards, 4)
+		_:
+			return [0, 1, 2, 3, 4]
+
+
+# Returns the indices in `cards` whose rank appears at least `target_count`
+# times in the array. Used to pick out the "matched" cards in pair/trips/quads
+# hands.
+static func _indices_with_rank_count(cards: Array, target_count: int) -> Array:
+	var rank_counts: Dictionary = {}
+	for c in cards:
+		rank_counts[c.rank] = int(rank_counts.get(c.rank, 0)) + 1
+	var result: Array = []
+	for i in cards.size():
+		if int(rank_counts.get(cards[i].rank, 0)) >= target_count:
+			result.append(i)
+	return result
 
 
 # Returns the 2×2 same-suit squares that include (col, row), as a list of
