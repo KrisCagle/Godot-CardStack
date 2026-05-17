@@ -92,10 +92,6 @@ func _ready() -> void:
 
 func _start_new_game() -> void:
 	_deck = Deck.new()
-	_preview.clear()
-	for i in PREVIEW_SIZE:
-		_preview.append(_deck.draw_card())
-	_current = _deck.draw_card()
 	score = 0
 	_tier = 1
 	_combo = 0
@@ -112,6 +108,11 @@ func _start_new_game() -> void:
 	_displayed_score = 0
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
+	# Now draw initial hand (tier-aware so specials can appear from card 1).
+	_preview.clear()
+	for i in PREVIEW_SIZE:
+		_preview.append(_draw_card_with_specials())
+	_current = _draw_card_with_specials()
 	playfield.reset()
 	game_over_panel.hide_summary()
 	_refresh()
@@ -129,6 +130,12 @@ func _process(delta: float) -> void:
 func _on_column_tapped(col: int) -> void:
 	if _is_animating or _game_over or _current == null:
 		return
+
+	# Bombs follow a different placement path: drop into any column, clear it.
+	if _current.is_bomb:
+		await _drop_bomb(col)
+		return
+
 	var target_row: int = playfield.lowest_empty_row(col)
 	if target_row < 0:
 		print("[game] column %d full" % col)
@@ -344,7 +351,93 @@ func _advance_queue() -> void:
 	_current = _preview[0]
 	for i in range(PREVIEW_SIZE - 1):
 		_preview[i] = _preview[i + 1]
-	_preview[PREVIEW_SIZE - 1] = _deck.draw_card()
+	_preview[PREVIEW_SIZE - 1] = _draw_card_with_specials()
+
+
+# Draws the next card, occasionally substituting a Joker or Bomb. Chance scales
+# with the player's current tier: 2.5% at T1 climbing to ~6% at T8+. Among
+# specials, 60% are Jokers, 40% are Bombs.
+func _draw_card_with_specials() -> Card:
+	var chance := _special_chance_for_tier(_tier)
+	if randf() < chance:
+		if randf() < 0.6:
+			return Card.make_joker()
+		return Card.make_bomb()
+	return _deck.draw_card()
+
+
+func _special_chance_for_tier(t: int) -> float:
+	return clampf(0.025 + float(t - 1) * 0.005, 0.025, 0.065)
+
+
+# Bomb path: animates into the column, then clears the whole column. Doesn't
+# score, doesn't trigger cascades, but still counts as a placement for the
+# combo timer and the dealer-round counter.
+func _drop_bomb(col: int) -> void:
+	_is_animating = true
+	var bomb := _current
+
+	if _combo_timer > 0.0:
+		_combo += 1
+	else:
+		_combo = 1
+
+	# Visual target: lowest empty row, or row 0 if column already full.
+	var visual_row: int = playfield.lowest_empty_row(col)
+	if visual_row < 0:
+		visual_row = 0
+	await _animate_drop(bomb, col, visual_row)
+
+	var cells_to_clear: Array = []
+	for y in PlayField.GRID_HEIGHT:
+		if playfield.card_at(col, y) != null:
+			cells_to_clear.append(Vector2i(col, y))
+
+	if not cells_to_clear.is_empty():
+		_spawn_clear_particles(cells_to_clear)
+		playfield.clear_cells(cells_to_clear)
+	_shake(16.0, 0.36)
+	_spawn_bomb_popup(col)
+	await get_tree().create_timer(0.30).timeout
+
+	_round_placements += 1
+	if _round_placements >= ROUND_LENGTH:
+		await _evaluate_round()
+		if _game_over:
+			return
+
+	_advance_queue()
+	_combo_timer = COMBO_TIME_MAX
+	_refresh()
+	_is_animating = false
+
+
+func _spawn_bomb_popup(col: int) -> void:
+	var popup := Label.new()
+	popup.text = "BOOM!"
+	popup.add_theme_font_size_override("font_size", 96)
+	popup.add_theme_color_override("font_color", Color(1.0, 0.50, 0.35))
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	popup.add_theme_constant_override("outline_size", 14)
+	popup.z_index = 110
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	var rect: Rect2 = playfield.cell_local_rect(col, int(PlayField.GRID_HEIGHT / 2))
+	var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+	popup.position = center - popup.size * 0.5
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.45, 0.45)
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(popup, "scale", Vector2(1.15, 1.15), 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.10).set_delay(0.22)
+	t.tween_property(popup, "modulate:a", 0.0, 0.45).set_delay(0.40)
+
+	await t.finished
+	popup.queue_free()
 
 
 func _refresh() -> void:

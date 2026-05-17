@@ -89,7 +89,7 @@ static func _best_substitution(cards: Array, joker_indices: Array, idx: int) -> 
 	var pos: int = joker_indices[idx]
 	for suit in 4:
 		for rank in 13:
-			cards[pos] = Card.new(suit, rank, false)
+			cards[pos] = Card.new(suit, rank)
 			var result := _best_substitution(cards, joker_indices, idx + 1)
 			if result.score > best.score \
 				or (result.score == best.score and result.rank > best.rank):
