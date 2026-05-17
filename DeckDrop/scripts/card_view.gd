@@ -36,8 +36,9 @@ static func draw_empty_slot(canvas: Control, rect: Rect2) -> void:
 
 
 static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
-	var face_color: Color = COLOR_CARD_FACE
-	var border_color: Color = COLOR_CARD_BORDER
+	var theme := Themes.current()
+	var face_color: Color = theme.card_face
+	var border_color: Color = theme.card_border
 	if card.is_bomb:
 		face_color = Color(1.00, 0.84, 0.82)
 		border_color = Color(0.55, 0.18, 0.18)

@@ -3,6 +3,7 @@ extends Control
 @onready var level_label: Label = $CenterColumn/LevelLabel
 @onready var xp_bar: ProgressBar = $CenterColumn/XPBar
 @onready var best_label: Label = $CenterColumn/BestLabel
+@onready var next_unlock_label: Label = $CenterColumn/NextUnlockLabel
 @onready var play_button: Button = $CenterColumn/PlayButton
 @onready var progress_button: Button = $CenterColumn/ProgressButton
 
@@ -22,6 +23,15 @@ func _refresh() -> void:
 	xp_bar.max_value = float(needed)
 	xp_bar.value = float(SaveData.xp)
 	best_label.text = "Best: %d" % SaveData.best_score
+
+	var next_unlock := Themes.next_unlock_for_level(SaveData.level)
+	if next_unlock.is_empty():
+		next_unlock_label.text = "✨  All themes unlocked"
+		next_unlock_label.modulate = Color(1.0, 0.95, 0.55)
+	else:
+		next_unlock_label.text = "Next: %s at Lv %d" % \
+			[String(next_unlock.name), int(next_unlock.unlock_level)]
+		next_unlock_label.modulate = Color(0.65, 0.78, 0.95)
 
 
 func _on_play_pressed() -> void:

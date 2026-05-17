@@ -6,6 +6,7 @@ extends Control
 signal close_pressed
 
 @onready var stats_vbox: VBoxContainer = $Panel/VBox/StatsSection/StatsVBox
+@onready var themes_vbox: VBoxContainer = $Panel/VBox/ThemesSection/ThemesVBox
 @onready var achievements_vbox: VBoxContainer = $Panel/VBox/AchievementsSection/AchievementsScroll/AchievementsVBox
 @onready var unlocked_label: Label = $Panel/VBox/AchievementsSection/UnlockedLabel
 @onready var back_button: Button = $Panel/VBox/BackButton
@@ -18,6 +19,7 @@ func _ready() -> void:
 
 func show_progress() -> void:
 	_populate_stats()
+	_populate_themes()
 	_populate_achievements()
 	visible = true
 	modulate.a = 0.0
@@ -61,6 +63,42 @@ func _populate_stats() -> void:
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(value)
 		stats_vbox.add_child(row)
+
+
+func _populate_themes() -> void:
+	for c in themes_vbox.get_children():
+		c.queue_free()
+	var current_id := String(Themes.current().id)
+	for t in Themes.LIST:
+		var id := String(t.id)
+		var ul: int = int(t.unlock_level)
+		var unlocked := SaveData.level >= ul
+
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = SIZE_EXPAND_FILL
+
+		# Felt color swatch on the left previews the theme.
+		var swatch := ColorRect.new()
+		swatch.custom_minimum_size = Vector2(36, 36)
+		swatch.color = t.felt if unlocked else Color(0.20, 0.22, 0.28)
+		row.add_child(swatch)
+
+		var name_label := Label.new()
+		name_label.add_theme_font_size_override("font_size", 28)
+		name_label.size_flags_horizontal = SIZE_EXPAND_FILL
+		if unlocked:
+			if id == current_id:
+				name_label.text = "  %s   ✓ CURRENT" % String(t.name)
+				name_label.modulate = Color(1.00, 0.95, 0.50)
+			else:
+				name_label.text = "  %s   (unlocked)" % String(t.name)
+				name_label.modulate = Color(0.72, 0.85, 1.00)
+		else:
+			name_label.text = "  %s   🔒 Lv %d" % [String(t.name), ul]
+			name_label.modulate = Color(0.50, 0.55, 0.65)
+		row.add_child(name_label)
+
+		themes_vbox.add_child(row)
 
 
 func _populate_achievements() -> void:

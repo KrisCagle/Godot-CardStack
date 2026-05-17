@@ -64,6 +64,7 @@ func suit_color() -> Color:
 		return Color(0.95, 0.78, 0.25)
 	if kind == Kind.BOMB:
 		return Color(0.85, 0.30, 0.30)
+	var theme := Themes.current()
 	if suit == Suit.HEARTS or suit == Suit.DIAMONDS:
-		return Color(0.85, 0.20, 0.25)
-	return Color(0.10, 0.13, 0.20)
+		return theme.card_text_red
+	return theme.card_text_black

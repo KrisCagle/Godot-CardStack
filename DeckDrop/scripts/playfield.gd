@@ -308,8 +308,9 @@ func _col_from_x(local_x: float) -> int:
 
 
 func _draw() -> void:
-	# Felt surface — slightly darker than the page so the play area has presence
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.04, 0.07, 0.10, 1.0), true)
+	# Felt surface — pulled from the active theme so leveling up visibly changes
+	# the table the cards sit on.
+	draw_rect(Rect2(Vector2.ZERO, size), Themes.current().felt, true)
 
 	for x in GRID_WIDTH:
 		for y in GRID_HEIGHT:
