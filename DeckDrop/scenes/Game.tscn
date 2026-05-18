@@ -1,8 +1,13 @@
-[gd_scene load_steps=4 format=3 uid="uid://deckdrop_game"]
+[gd_scene load_steps=7 format=3 uid="uid://deckdrop_game"]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/playfield.gd" id="2_playfield"]
 [ext_resource type="Script" path="res://scripts/card_view.gd" id="3_cardview"]
+[ext_resource type="Script" path="res://scripts/game_over_panel.gd" id="4_gameover"]
+[ext_resource type="Shader" path="res://shaders/background.gdshader" id="5_bgshader"]
+
+[sub_resource type="ShaderMaterial" id="bgmat"]
+shader = ExtResource("5_bgshader")
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -12,6 +17,7 @@ anchor_bottom = 1.0
 script = ExtResource("1_game")
 
 [node name="Background" type="ColorRect" parent="."]
+material = SubResource("bgmat")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,15 +28,15 @@ color = Color(0.05, 0.07, 0.11, 1)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 130.0
+offset_bottom = 200.0
 
-[node name="LevelLabel" type="Label" parent="HUD"]
+[node name="TierLabel" type="Label" parent="HUD"]
 layout_mode = 1
 offset_left = 36.0
 offset_top = 35.0
 offset_right = 400.0
 offset_bottom = 100.0
-text = "Lv 1"
+text = "Tier 1"
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 52
 
@@ -58,12 +64,66 @@ offset_bottom = 100.0
 text = "Menu"
 theme_override_font_sizes/font_size = 32
 
+[node name="DealerInfoLabel" type="Label" parent="HUD"]
+layout_mode = 1
+offset_left = 36.0
+offset_top = 115.0
+offset_right = 700.0
+offset_bottom = 160.0
+modulate = Color(0.85, 0.55, 0.55, 1)
+text = "DEALER: Pair · 100"
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 34
+
+[node name="RoundCounterLabel" type="Label" parent="HUD"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 115.0
+offset_right = -36.0
+offset_bottom = 160.0
+modulate = Color(1, 0.95, 0.5, 1)
+text = "7 LEFT"
+horizontal_alignment = 2
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 38
+
+[node name="ComboBar" type="ProgressBar" parent="HUD"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = -22.0
+offset_right = -30.0
+offset_bottom = -4.0
+max_value = 4.0
+value = 0.0
+show_percentage = false
+modulate = Color(0.25, 0.28, 0.36, 1)
+
+[node name="ComboLabel" type="Label" parent="HUD"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -22.0
+offset_right = 0.0
+offset_bottom = -4.0
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 18
+modulate = Color(1, 1, 0.55, 1)
+
 [node name="TopArea" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 130.0
-offset_bottom = 330.0
+offset_top = 200.0
+offset_bottom = 400.0
 
 [node name="CurrentLabel" type="Label" parent="TopArea"]
 layout_mode = 1
@@ -93,7 +153,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 330.0
+offset_top = 400.0
 offset_bottom = -370.0
 script = ExtResource("2_playfield")
 
@@ -168,3 +228,110 @@ text = "[ ad placeholder · 1080 × 150 ]"
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 32
+
+[node name="GameOverPanel" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+script = ExtResource("4_gameover")
+
+[node name="Backdrop" type="ColorRect" parent="GameOverPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="Panel" parent="GameOverPanel"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -620.0
+offset_right = 460.0
+offset_bottom = 620.0
+
+[node name="VBox" type="VBoxContainer" parent="GameOverPanel/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = 60.0
+offset_right = -60.0
+offset_bottom = -60.0
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Title" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+text = "GAME OVER"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 96
+
+[node name="Spacer1" type="Control" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="ScoreLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+text = "Score  0"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 80
+
+[node name="BestBadge" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(1, 0.85, 0.3, 1)
+text = "★ NEW BEST ★"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 48
+visible = false
+
+[node name="BestHandLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.7, 0.78, 0.92, 1)
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 40
+
+[node name="Spacer2" type="Control" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="XpLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+text = "+0 XP"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 60
+
+[node name="LevelLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.7, 0.75, 0.88, 1)
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 36
+
+[node name="Spacer3" type="Control" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 40
+
+[node name="PlayAgainButton" type="Button" parent="GameOverPanel/Panel/VBox/ButtonRow"]
+custom_minimum_size = Vector2(380, 140)
+layout_mode = 2
+text = "PLAY AGAIN"
+theme_override_font_sizes/font_size = 56
+
+[node name="MenuButton" type="Button" parent="GameOverPanel/Panel/VBox/ButtonRow"]
+custom_minimum_size = Vector2(280, 140)
+layout_mode = 2
+text = "MENU"
+theme_override_font_sizes/font_size = 48

@@ -1,0 +1,136 @@
+[gd_scene load_steps=2 format=3 uid="uid://deckdrop_progress"]
+
+[ext_resource type="Script" path="res://scripts/progress_panel.gd" id="1_progress"]
+
+[node name="ProgressPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_progress")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.78)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -820.0
+offset_right = 480.0
+offset_bottom = 820.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = -50.0
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "PROGRESS"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 80
+
+[node name="StatsSection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StatsTitle" type="Label" parent="Panel/VBox/StatsSection"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "LIFETIME STATS"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="StatsVBox" type="VBoxContainer" parent="Panel/VBox/StatsSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Spacer" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="DailySection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DailyTitle" type="Label" parent="Panel/VBox/DailySection"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "DAILY HISTORY"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="DailyVBox" type="VBoxContainer" parent="Panel/VBox/DailySection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SpacerB" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="ThemesSection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ThemesTitle" type="Label" parent="Panel/VBox/ThemesSection"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "THEMES"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="ThemesVBox" type="VBoxContainer" parent="Panel/VBox/ThemesSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Spacer2" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="AchievementsSection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="AchievementsTitle" type="Label" parent="Panel/VBox/AchievementsSection"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "ACHIEVEMENTS"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="UnlockedLabel" type="Label" parent="Panel/VBox/AchievementsSection"]
+layout_mode = 2
+modulate = Color(0.70, 0.78, 0.92, 1)
+text = "0 / 9 UNLOCKED"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="AchievementsScroll" type="ScrollContainer" parent="Panel/VBox/AchievementsSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AchievementsVBox" type="VBoxContainer" parent="Panel/VBox/AchievementsSection/AchievementsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BackButton" type="Button" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+text = "BACK"
+theme_override_font_sizes/font_size = 48

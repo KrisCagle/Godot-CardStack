@@ -36,8 +36,17 @@ static func draw_empty_slot(canvas: Control, rect: Rect2) -> void:
 
 
 static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
-	canvas.draw_rect(rect, COLOR_CARD_FACE, true)
-	canvas.draw_rect(rect, COLOR_CARD_BORDER, false, 2.0)
+	var theme := Themes.current()
+	var face_color: Color = theme.card_face
+	var border_color: Color = theme.card_border
+	if card.is_bomb:
+		face_color = Color(1.00, 0.84, 0.82)
+		border_color = Color(0.55, 0.18, 0.18)
+	elif card.is_joker:
+		face_color = Color(1.00, 0.96, 0.80)
+		border_color = Color(0.65, 0.50, 0.15)
+	canvas.draw_rect(rect, face_color, true)
+	canvas.draw_rect(rect, border_color, false, 2.0)
 
 	var font := canvas.get_theme_default_font()
 	var fg := card.suit_color()

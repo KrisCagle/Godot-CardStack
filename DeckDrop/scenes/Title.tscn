@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://deckdrop_title"]
+[gd_scene load_steps=4 format=3 uid="uid://deckdrop_title"]
 
 [ext_resource type="Script" path="res://scripts/title.gd" id="1_title"]
+[ext_resource type="Shader" path="res://shaders/background.gdshader" id="2_bgshader"]
+
+[sub_resource type="ShaderMaterial" id="bgmat"]
+shader = ExtResource("2_bgshader")
 
 [node name="Title" type="Control"]
 layout_mode = 3
@@ -10,6 +14,7 @@ anchor_bottom = 1.0
 script = ExtResource("1_title")
 
 [node name="Background" type="ColorRect" parent="."]
+material = SubResource("bgmat")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -67,6 +72,13 @@ text = "Best: 0"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 40
 
+[node name="NextUnlockLabel" type="Label" parent="CenterColumn"]
+layout_mode = 2
+modulate = Color(0.65, 0.78, 0.95, 1)
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
 [node name="Spacer2" type="Control" parent="CenterColumn"]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
@@ -76,6 +88,18 @@ custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 text = "PLAY"
 theme_override_font_sizes/font_size = 72
+
+[node name="DailyButton" type="Button" parent="CenterColumn"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+text = "DAILY"
+theme_override_font_sizes/font_size = 52
+
+[node name="ProgressButton" type="Button" parent="CenterColumn"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+text = "PROGRESS"
+theme_override_font_sizes/font_size = 48
 
 [node name="AdPlaceholder" type="ColorRect" parent="."]
 layout_mode = 1

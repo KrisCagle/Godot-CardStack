@@ -1,0 +1,13 @@
+# Godot 4+ engine cache and intermediate build files
+.godot/
+
+# Build / export output
+build/
+*.tmp
+*~
+
+# macOS
+.DS_Store
+
+# Imported translations (auto-generated from CSV)
+*.translation
