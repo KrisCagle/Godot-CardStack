@@ -250,6 +250,7 @@ func _process_cascades() -> void:
 		cascade_tier += 1
 		Sfx.play("clear")
 		SaveData.update_max_stat("highest_cascade_tier", cascade_tier)
+		_update_objective("max_cascade", cascade_tier)
 		if cascade_tier >= 3:
 			_try_achievement("triple_cascade")
 		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
@@ -269,6 +270,8 @@ func _process_cascades() -> void:
 				_round_best_score = earned
 			_hands_seen_this_run[String(g.name)] = int(_hands_seen_this_run.get(g.name, 0)) + 1
 			SaveData.increment_stat("total_hands_cleared")
+			_update_objective("hand_count", 1, String(g.name))
+			_update_objective("single_hand_score", earned)
 
 			# Achievement: Royal Flush ever, Wild Thing if a Joker contributed.
 			if int(g.rank) == HandEvaluator.HandRank.ROYAL_FLUSH:
@@ -319,6 +322,7 @@ func _evaluate_round() -> void:
 			% [dealer_name, dealer_score, _round_best_score, bonus])
 		Sfx.play("win")
 		_try_achievement("first_dealer")
+		_update_objective("dealers_beaten", 1)
 		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
 		_shake(10.0, 0.22)
 		await get_tree().create_timer(0.55).timeout
@@ -493,12 +497,17 @@ func _drop_bomb(col: int) -> void:
 	_is_animating = false
 
 
-# Per-placement bookkeeping: stats, joker count.
+# Per-placement bookkeeping: stats, joker/bomb count, objective progress.
 func _on_placement_recorded(placed: Card) -> void:
 	_run_placements += 1
 	SaveData.increment_stat("total_cards_placed")
+	_update_objective("placements", 1)
 	if placed != null and placed.is_joker:
 		SaveData.increment_stat("total_jokers_played")
+		_update_objective("jokers_placed", 1)
+	if placed != null and placed.is_bomb:
+		SaveData.increment_stat("total_bombs_played")
+		_update_objective("bombs_detonated", 1)
 
 
 # Centralized combo update so the bomb and normal-placement paths share rules.
@@ -514,6 +523,7 @@ func _update_combo_state() -> void:
 	else:
 		_combo = 1
 	SaveData.update_max_stat("highest_combo", _combo)
+	_update_objective("max_combo", _combo)
 
 
 # Claims an achievement; if newly unlocked, awards its XP and pops the toast.
