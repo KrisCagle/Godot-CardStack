@@ -65,6 +65,9 @@ const FIRST_TIME_BONUSES := {
 @onready var hold_button: Button = $BottomArea/HoldButton
 @onready var objectives_vbox: VBoxContainer = $BottomArea/ObjectivesContainer/ObjectivesVBox
 
+const PERK_SHOP_SCENE := preload("res://scenes/PerkShopPanel.tscn")
+var _perk_shop: Control = null
+
 var _deck: Deck
 var _specials_rng: RandomNumberGenerator = null
 var _current: Card = null
@@ -128,6 +131,8 @@ func _ready() -> void:
 	game_over_panel.menu_pressed.connect(_on_menu_pressed)
 	discard_button.pressed.connect(_on_discard_pressed)
 	hold_button.pressed.connect(_on_hold_pressed)
+	_perk_shop = PERK_SHOP_SCENE.instantiate()
+	add_child(_perk_shop)
 	_start_new_game()
 
 
@@ -351,8 +356,13 @@ func _evaluate_round() -> void:
 		SaveData.update_max_stat("highest_dealer_tier", _dealer_tier)
 		if _dealer_tier >= 5:
 			_try_achievement("marathon")
-		_show_round_splash("ROUND %d" % _dealer_tier,
+		await _show_round_splash("ROUND %d" % _dealer_tier,
 			"— %s —" % String(_dealer_target.get("name", "?")).to_upper())
+		# Perk shop appears between rounds — Balatro-style build-up.
+		_perk_shop.show_choices(Perks.roll_choice())
+		var picked: Dictionary = await _perk_shop.perk_picked
+		_apply_perk(picked)
+		_refresh()
 	else:
 		print("[dealer] %s (%d) WINS — best %d not enough" \
 			% [dealer_name, dealer_score, _round_best_score])
@@ -703,6 +713,38 @@ func _update_objective(event_type: String, value: int = 1, hand_name: String = "
 			_on_objective_complete(obj)
 	if any_updated:
 		_refresh_objectives()
+
+
+# Applies one perk's effect to active run state. Perks stack with the modifier
+# and with previously-applied perks (multiplicatively or additively depending
+# on the field).
+func _apply_perk(perk: Dictionary) -> void:
+	var id: String = String(perk.get("id", ""))
+	Sfx.play("win")
+	print("[perk] applied: %s" % id)
+	match id:
+		"discard_master":
+			_discards_remaining = mini(_discards_remaining + 2, 5)
+		"hold_master":
+			_holds_remaining = mini(_holds_remaining + 2, 5)
+		"refill_actions":
+			_discards_remaining = DISCARDS_PER_RUN
+			_holds_remaining = HOLDS_PER_RUN
+		"combo_time":
+			_active_combo_time += 1.5
+		"combo_power":
+			_active_combo_increment += 0.1
+		"base_power":
+			_active_base_mult *= 1.15
+		"joker_magnet":
+			_active_joker_ratio = 0.85
+		"cascade_king":
+			_active_cascade_tier_bonus += 0.3
+		"dealer_pity":
+			# Lower the just-rolled next dealer's target by 20%
+			var t: Dictionary = _dealer_target.duplicate(true)
+			t["score"] = int(round(float(t.get("score", 0)) * 0.8))
+			_dealer_target = t
 
 
 func _apply_modifier(mod: Dictionary) -> void:

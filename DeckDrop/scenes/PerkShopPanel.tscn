@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3 uid="uid://deckdrop_perkshop"]
+
+[ext_resource type="Script" path="res://scripts/perk_shop_panel.gd" id="1_perkshop"]
+
+[node name="PerkShopPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+script = ExtResource("1_perkshop")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.72)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -460.0
+offset_right = 480.0
+offset_bottom = 460.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 30.0
+offset_right = -40.0
+offset_bottom = -30.0
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "CHOOSE A PERK"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 64
+
+[node name="Subtitle" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.65, 0.72, 0.85, 1)
+text = "Pick one — applies for the rest of the run"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+
+[node name="Spacer" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="PerkRow" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Perk0" type="Button" parent="Panel/VBox/PerkRow"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+text = "PERK 1"
+theme_override_font_sizes/font_size = 30
+
+[node name="Perk1" type="Button" parent="Panel/VBox/PerkRow"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+text = "PERK 2"
+theme_override_font_sizes/font_size = 30
+
+[node name="Perk2" type="Button" parent="Panel/VBox/PerkRow"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+text = "PERK 3"
+theme_override_font_sizes/font_size = 30
