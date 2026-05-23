@@ -351,7 +351,8 @@ func _evaluate_round() -> void:
 		SaveData.update_max_stat("highest_dealer_tier", _dealer_tier)
 		if _dealer_tier >= 5:
 			_try_achievement("marathon")
-		_show_round_splash("ROUND %d" % _dealer_tier)
+		_show_round_splash("ROUND %d" % _dealer_tier,
+			"— %s —" % String(_dealer_target.get("name", "?")).to_upper())
 	else:
 		print("[dealer] %s (%d) WINS — best %d not enough" \
 			% [dealer_name, dealer_score, _round_best_score])
@@ -745,7 +746,9 @@ func _set_displayed_score(v: int) -> void:
 func _refresh_dealer_hud() -> void:
 	var dealer_name: String = String(_dealer_target.get("name", "?"))
 	var dealer_score: int = int(_dealer_target.get("score", 0))
-	dealer_info_label.text = "⚔ DEALER: %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
+	var dealer_color: Color = _dealer_target.get("color", Color(0.85, 0.55, 0.55))
+	dealer_info_label.text = "⚔ %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
+	dealer_info_label.modulate = dealer_color
 	var left := _active_round_length - _round_placements
 	round_counter_label.text = "%d LEFT" % left
 	if left <= 1:

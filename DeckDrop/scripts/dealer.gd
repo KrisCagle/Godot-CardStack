@@ -1,27 +1,69 @@
 class_name Dealer
 extends RefCounted
-## Dealer target generator. Static lookup keyed off the player's current tier.
+## Named dealer characters. Each dealer occupies one tier; player progresses
+## through the roster by beating successive dealers. Each entry has a color
+## (used to tint the HUD dealer line + the round-transition splash) and a
+## one-liner description for flavour.
 ##
-## We don't generate actual 5-card hands here — only the target score the player
-## must beat in their 5-placement round. The hand *name* is shown as flavour text
-## ("DEALER: PAIR · 100 to beat") so the player has a sense of what they're up
-## against without needing the dealer's cards on screen.
+## All target scores match the previous numeric curve so existing balance
+## tuning carries over — this refactor adds personality without shifting math.
 
-const TIER_TARGETS := [
-	{"name": "Low Pair",       "score": 25},
-	{"name": "Pair",           "score": 100},
-	{"name": "Two Pair",       "score": 160},
-	{"name": "Trips",          "score": 240},
-	{"name": "Straight",       "score": 360},
-	{"name": "Flush",          "score": 500},
-	{"name": "Full House",     "score": 700},
-	{"name": "Quads",          "score": 950},
-	{"name": "Straight Flush", "score": 1400},
-	{"name": "Royal Flush",    "score": 2500},
+const ROSTER := [
+	{
+		"id": "apprentice", "name": "The Apprentice",
+		"score": 25,   "color": Color(0.65, 0.85, 1.00),
+		"description": "Pair of low cards — easy mark",
+	},
+	{
+		"id": "hustler", "name": "The Hustler",
+		"score": 100,  "color": Color(0.95, 0.78, 0.45),
+		"description": "Quick to bet, quick to bluff",
+	},
+	{
+		"id": "sharp", "name": "The Sharp",
+		"score": 160,  "color": Color(0.55, 0.95, 0.70),
+		"description": "Reads the table cold",
+	},
+	{
+		"id": "magician", "name": "The Magician",
+		"score": 240,  "color": Color(0.80, 0.55, 1.00),
+		"description": "Sleight of hand",
+	},
+	{
+		"id": "whale", "name": "The Whale",
+		"score": 360,  "color": Color(0.45, 0.85, 1.00),
+		"description": "Plays big — pays bigger",
+	},
+	{
+		"id": "cheat", "name": "The Cheat",
+		"score": 500,  "color": Color(1.00, 0.55, 0.50),
+		"description": "Always one card up",
+	},
+	{
+		"id": "royal", "name": "The Royal",
+		"score": 700,  "color": Color(0.95, 0.85, 0.40),
+		"description": "Demands the crown",
+	},
+	{
+		"id": "boss", "name": "The Boss",
+		"score": 950,  "color": Color(1.00, 0.45, 0.55),
+		"description": "House never loses",
+	},
+	{
+		"id": "ace", "name": "The Ace",
+		"score": 1400, "color": Color(0.45, 1.00, 0.85),
+		"description": "Top of the deck",
+	},
+	{
+		"id": "legend", "name": "The Legend",
+		"score": 2500, "color": Color(1.00, 0.85, 0.25),
+		"description": "Royalty of the floor",
+	},
 ]
 
 
-# Returns {name: String, score: int} for the given tier. Clamps to table bounds.
+# Returns {id, name, score, color, description} for the given tier.
+# Clamps to roster bounds.
 static func target_for_tier(tier: int) -> Dictionary:
-	var idx := clampi(tier - 1, 0, TIER_TARGETS.size() - 1)
-	return TIER_TARGETS[idx].duplicate()
+	var idx := clampi(tier - 1, 0, ROSTER.size() - 1)
+	return ROSTER[idx].duplicate(true)
