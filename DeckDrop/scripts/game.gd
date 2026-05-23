@@ -63,6 +63,7 @@ const FIRST_TIME_BONUSES := {
 @onready var game_over_panel: Control = $GameOverPanel
 @onready var discard_button: Button = $BottomArea/DiscardButton
 @onready var hold_button: Button = $BottomArea/HoldButton
+@onready var objectives_vbox: VBoxContainer = $BottomArea/ObjectivesContainer/ObjectivesVBox
 
 var _deck: Deck
 var _specials_rng: RandomNumberGenerator = null
@@ -90,6 +91,13 @@ var _run_placements: int = 0  # total placements this run (for stats)
 var _discards_remaining: int = DISCARDS_PER_RUN
 var _holds_remaining: int = HOLDS_PER_RUN
 var _held_card: Card = null
+
+# Per-run objectives: 3 random goals from Objectives.POOL. progress + completion
+# tracked here; XP rewarded immediately on completion via SaveData.
+var _objectives: Array = []
+var _objective_progress: Dictionary = {}
+var _objective_completed: Dictionary = {}
+var _objective_xp_earned: int = 0
 
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
@@ -141,6 +149,13 @@ func _start_new_game() -> void:
 	_discards_remaining = DISCARDS_PER_RUN
 	_holds_remaining = HOLDS_PER_RUN
 	_held_card = null
+	_objectives = Objectives.roll_for_run()
+	_objective_progress = {}
+	_objective_completed = {}
+	for obj in _objectives:
+		_objective_progress[obj.id] = 0
+		_objective_completed[obj.id] = false
+	_objective_xp_earned = 0
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -366,13 +381,24 @@ func _end_run(reason: String = "column_overflow") -> void:
 		"best_hand_name": _best_hand_name,
 		"best_hand_score": _best_hand_score,
 		"is_new_best": is_new_best,
-		"xp_gained": total_xp,
+		"xp_gained": total_xp + _objective_xp_earned,
 		"xp_from_score": xp_from_score,
 		"xp_from_hands": first_time_bonus,
+		"xp_from_objectives": _objective_xp_earned,
 		"previous_level": previous_level,
 		"new_level": SaveData.level,
 		"leveled_up": bool(add_result.get("leveled_up", false)),
+		"objectives_completed": _completed_objective_count(),
+		"objectives_total": _objectives.size(),
 	})
+
+
+func _completed_objective_count() -> int:
+	var n := 0
+	for obj in _objectives:
+		if bool(_objective_completed.get(obj.id, false)):
+			n += 1
+	return n
 
 
 func _today_date() -> String:
@@ -574,6 +600,7 @@ func _refresh() -> void:
 	_refresh_combo_display()
 	_refresh_dealer_hud()
 	_refresh_actions()
+	_refresh_objectives()
 
 
 func _refresh_actions() -> void:
@@ -586,6 +613,71 @@ func _refresh_actions() -> void:
 		hold_button.text = "HOLD: %s%s   ×%d" % \
 			[_held_card.rank_label(), _held_card.suit_label(), _holds_remaining]
 	hold_button.disabled = _holds_remaining <= 0 or _game_over
+
+
+# Rebuilds the objectives display from the current progress/completion state.
+# Called from _refresh and from _update_objective when something changed.
+func _refresh_objectives() -> void:
+	if objectives_vbox == null:
+		return
+	for c in objectives_vbox.get_children():
+		c.queue_free()
+	for obj in _objectives:
+		var progress: int = int(_objective_progress.get(obj.id, 0))
+		var target: int = int(obj.target)
+		var done: bool = bool(_objective_completed.get(obj.id, false))
+		var row := Label.new()
+		row.add_theme_font_size_override("font_size", 20)
+		if done:
+			row.text = "✓  %s" % String(obj.name)
+			row.modulate = Color(0.50, 1.00, 0.65)
+		else:
+			row.text = "◯  %s   %d/%d" % [String(obj.name), progress, target]
+			row.modulate = Color(0.75, 0.80, 0.92)
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		objectives_vbox.add_child(row)
+
+
+# Updates objective progress for an event. event_type matches obj.type; for
+# hand_count, hand_name must also match obj.target_name. Increment types add
+# `value`; max types take max(current, value).
+func _update_objective(event_type: String, value: int = 1, hand_name: String = "") -> void:
+	if _game_over:
+		return
+	var any_updated := false
+	for obj in _objectives:
+		if bool(_objective_completed.get(obj.id, false)):
+			continue
+		if String(obj.type) != event_type:
+			continue
+		if event_type == "hand_count":
+			if String(obj.get("target_name", "")) != hand_name:
+				continue
+		var current: int = int(_objective_progress.get(obj.id, 0))
+		var new_value: int = current
+		if event_type == "max_combo" or event_type == "max_cascade" or event_type == "single_hand_score":
+			new_value = maxi(current, value)
+		else:
+			new_value = current + value
+		if new_value == current:
+			continue
+		_objective_progress[obj.id] = new_value
+		any_updated = true
+		if new_value >= int(obj.target):
+			_objective_completed[obj.id] = true
+			_on_objective_complete(obj)
+	if any_updated:
+		_refresh_objectives()
+
+
+func _on_objective_complete(obj: Dictionary) -> void:
+	var xp_reward: int = int(obj.xp)
+	SaveData.add_xp(xp_reward)
+	_objective_xp_earned += xp_reward
+	print("[obj] complete: %s (+%d XP)" % [obj.name, xp_reward])
+	Sfx.play("win")
+	_spawn_dealer_popup("OBJECTIVE!  %s  +%d" % [String(obj.name).to_upper(), xp_reward],
+		Color(0.85, 1.00, 0.65))
 
 
 func _refresh_score() -> void:

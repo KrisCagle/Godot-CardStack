@@ -49,10 +49,18 @@ func show_summary(data: Dictionary) -> void:
 
 	var xp_gained: int = int(data.get("xp_gained", 0))
 	var xp_from_hands: int = int(data.get("xp_from_hands", 0))
+	var xp_from_objectives: int = int(data.get("xp_from_objectives", 0))
+	var objectives_completed: int = int(data.get("objectives_completed", 0))
+	var objectives_total: int = int(data.get("objectives_total", 0))
+	var bonus_parts: Array = []
 	if xp_from_hands > 0:
-		xp_label.text = "+%d XP   (+%d first-time bonus)" % [xp_gained, xp_from_hands]
-	else:
+		bonus_parts.append("+%d first-time" % xp_from_hands)
+	if xp_from_objectives > 0:
+		bonus_parts.append("+%d obj %d/%d" % [xp_from_objectives, objectives_completed, objectives_total])
+	if bonus_parts.is_empty():
 		xp_label.text = "+%d XP" % xp_gained
+	else:
+		xp_label.text = "+%d XP   (%s)" % [xp_gained, ", ".join(bonus_parts)]
 
 	var leveled_up: bool = bool(data.get("leveled_up", false))
 	var prev: int = int(data.get("previous_level", 0))
