@@ -99,6 +99,20 @@ var _objective_progress: Dictionary = {}
 var _objective_completed: Dictionary = {}
 var _objective_xp_earned: int = 0
 
+# Per-run modifier rolled in _start_new_game (or picked deterministically for
+# daily mode). _active_* live values reflect modifier overrides on top of the
+# constant defaults so the rest of the file can read live values without
+# remembering "did the modifier touch this?"
+var _modifier: Dictionary = {}
+var _active_combo_time: float = COMBO_TIME_MAX
+var _active_combo_increment: float = COMBO_INCREMENT
+var _active_round_length: int = ROUND_LENGTH
+var _active_base_mult: float = 1.0
+var _active_special_rate_mult: float = 1.0
+var _active_joker_ratio: float = 0.6
+var _active_cascade_tier_bonus: float = 0.0
+var _combos_disabled: bool = false
+
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
 
@@ -156,6 +170,11 @@ func _start_new_game() -> void:
 		_objective_progress[obj.id] = 0
 		_objective_completed[obj.id] = false
 	_objective_xp_earned = 0
+	if MatchState.is_daily():
+		_modifier = Modifiers.for_daily(MatchState.daily_date)
+	else:
+		_modifier = Modifiers.roll_random()
+	_apply_modifier(_modifier)
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -166,7 +185,8 @@ func _start_new_game() -> void:
 	game_over_panel.hide_summary()
 	_refresh()
 	var splash_prefix := "DAILY · " if MatchState.is_daily() else ""
-	_show_round_splash("%sROUND 1" % splash_prefix)
+	var splash_subtitle: String = String(_modifier.get("name", "")).to_upper()
+	_show_round_splash("%sROUND 1" % splash_prefix, splash_subtitle)
 
 
 func _process(delta: float) -> void:
@@ -207,13 +227,13 @@ func _on_column_tapped(col: int) -> void:
 		return
 
 	_round_placements += 1
-	if _round_placements >= ROUND_LENGTH:
+	if _round_placements >= _active_round_length:
 		await _evaluate_round()
 		if _game_over:
 			return
 
 	_advance_queue()
-	_combo_timer = COMBO_TIME_MAX
+	_combo_timer = _active_combo_time
 	_refresh()
 	_is_animating = false
 
@@ -242,7 +262,7 @@ func _animate_drop(card: Card, col: int, row: int) -> void:
 
 func _process_cascades() -> void:
 	var cascade_tier := 0
-	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
+	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * _active_combo_increment
 	while true:
 		var groups: Array = playfield.find_scoring_groups()
 		if groups.is_empty():
@@ -253,13 +273,13 @@ func _process_cascades() -> void:
 		_update_objective("max_cascade", cascade_tier)
 		if cascade_tier >= 3:
 			_try_achievement("triple_cascade")
-		var tier_mult := 1.0 + float(cascade_tier - 1) * 0.5
+		var tier_mult := 1.0 + float(cascade_tier - 1) * (0.5 + _active_cascade_tier_bonus)
 		if cascade_tier >= 2:
 			_shake(7.0, 0.18)
 
 		var all_cells: Array = []
 		for g in groups:
-			var earned := int(round(float(g.score) * tier_mult * combo_mult))
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -394,6 +414,7 @@ func _end_run(reason: String = "column_overflow") -> void:
 		"leveled_up": bool(add_result.get("leveled_up", false)),
 		"objectives_completed": _completed_objective_count(),
 		"objectives_total": _objectives.size(),
+		"modifier_name": String(_modifier.get("name", "")),
 	})
 
 
@@ -443,12 +464,12 @@ func _advance_queue() -> void:
 
 
 func _draw_card_with_specials() -> Card:
-	var chance := _special_chance_for_tier(_tier)
+	var chance := _special_chance_for_tier(_tier) * _active_special_rate_mult
 	# Use the seeded _specials_rng so daily-mode special placements are
 	# deterministic too — without this, two players on the same daily seed
 	# could see different Joker/Bomb positions.
 	if _specials_rng.randf() < chance:
-		if _specials_rng.randf() < 0.6:
+		if _specials_rng.randf() < _active_joker_ratio:
 			return Card.make_joker()
 		return Card.make_bomb()
 	return _deck.draw_card()
@@ -486,13 +507,13 @@ func _drop_bomb(col: int) -> void:
 	await get_tree().create_timer(0.30).timeout
 
 	_round_placements += 1
-	if _round_placements >= ROUND_LENGTH:
+	if _round_placements >= _active_round_length:
 		await _evaluate_round()
 		if _game_over:
 			return
 
 	_advance_queue()
-	_combo_timer = COMBO_TIME_MAX
+	_combo_timer = _active_combo_time
 	_refresh()
 	_is_animating = false
 
@@ -514,6 +535,9 @@ func _on_placement_recorded(placed: Card) -> void:
 # Bumps combo, plays SFX on first crossing into ≥2, claims Hot Streak at ≥5,
 # and updates the lifetime highest_combo stat.
 func _update_combo_state() -> void:
+	if _combos_disabled:
+		_combo = 0
+		return
 	if _combo_timer > 0.0:
 		_combo += 1
 		if _combo == 2:
@@ -680,6 +704,18 @@ func _update_objective(event_type: String, value: int = 1, hand_name: String = "
 		_refresh_objectives()
 
 
+func _apply_modifier(mod: Dictionary) -> void:
+	_active_combo_time = float(mod.get("combo_time", COMBO_TIME_MAX))
+	_active_combo_increment = COMBO_INCREMENT * float(mod.get("combo_increment_mult", 1.0))
+	_active_round_length = int(mod.get("round_length", ROUND_LENGTH))
+	_active_base_mult = float(mod.get("base_mult", 1.0))
+	_active_special_rate_mult = float(mod.get("special_rate_mult", 1.0))
+	_active_joker_ratio = float(mod.get("joker_ratio", 0.6))
+	_active_cascade_tier_bonus = float(mod.get("cascade_mult_bonus", 0.0))
+	_combos_disabled = bool(mod.get("combos_off", false))
+	print("[mod] %s — %s" % [String(mod.get("name", "?")), String(mod.get("description", ""))])
+
+
 func _on_objective_complete(obj: Dictionary) -> void:
 	var xp_reward: int = int(obj.xp)
 	SaveData.add_xp(xp_reward)
@@ -710,7 +746,7 @@ func _refresh_dealer_hud() -> void:
 	var dealer_name: String = String(_dealer_target.get("name", "?"))
 	var dealer_score: int = int(_dealer_target.get("score", 0))
 	dealer_info_label.text = "⚔ DEALER: %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
-	var left := ROUND_LENGTH - _round_placements
+	var left := _active_round_length - _round_placements
 	round_counter_label.text = "%d LEFT" % left
 	if left <= 1:
 		round_counter_label.modulate = Color(1.0, 0.4, 0.45)
@@ -721,15 +757,17 @@ func _refresh_dealer_hud() -> void:
 
 
 func _refresh_combo_display() -> void:
-	combo_bar.max_value = COMBO_TIME_MAX
+	combo_bar.max_value = _active_combo_time
 	combo_bar.value = _combo_timer
-	var alive := _combo_timer > 0.0
+	var alive := _combo_timer > 0.0 and not _combos_disabled
 	if alive and _combo > 1:
 		combo_label.text = "COMBO ×%d" % _combo
+	elif _combos_disabled:
+		combo_label.text = "COMBOS OFF"
 	else:
 		combo_label.text = ""
 
-	var ratio := _combo_timer / COMBO_TIME_MAX if COMBO_TIME_MAX > 0.0 else 0.0
+	var ratio := _combo_timer / _active_combo_time if _active_combo_time > 0.0 else 0.0
 	var fill: Color
 	if ratio > 0.66:
 		fill = Color(0.40, 0.85, 0.55, 1.0)
@@ -748,7 +786,7 @@ func _refresh_combo_display() -> void:
 func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 	if placed == null or placed.is_joker:
 		return
-	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * COMBO_INCREMENT
+	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * _active_combo_increment
 
 	var adj_raw := _adjacency_bonus(col, row, placed)
 	var squares: Array = playfield.find_same_suit_squares_at(col, row)
@@ -1017,13 +1055,17 @@ func _spawn_cell_glow(g: Dictionary) -> void:
 		t.finished.connect(glow.queue_free)
 
 
-func _show_round_splash(text: String) -> void:
+func _show_round_splash(text: String, subtitle: String = "") -> void:
+	var full := text
+	if not subtitle.is_empty():
+		full = "%s\n%s" % [text, subtitle]
 	var splash := Label.new()
-	splash.text = text
-	splash.add_theme_font_size_override("font_size", 140)
+	splash.text = full
+	splash.add_theme_font_size_override("font_size", 120)
 	splash.add_theme_color_override("font_color", Color(1.0, 0.95, 0.65))
 	splash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	splash.add_theme_constant_override("outline_size", 16)
+	splash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	splash.z_index = 150
 	splash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(splash)
@@ -1038,7 +1080,7 @@ func _show_round_splash(text: String) -> void:
 	t.tween_property(splash, "scale", Vector2(1.0, 1.0), 0.30) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.tween_property(splash, "modulate:a", 1.0, 0.20)
-	t.tween_property(splash, "modulate:a", 0.0, 0.40).set_delay(0.70)
+	t.tween_property(splash, "modulate:a", 0.0, 0.40).set_delay(0.85)
 
 	await t.finished
 	splash.queue_free()

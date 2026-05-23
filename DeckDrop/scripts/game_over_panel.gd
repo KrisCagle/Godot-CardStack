@@ -62,6 +62,13 @@ func show_summary(data: Dictionary) -> void:
 	else:
 		xp_label.text = "+%d XP   (%s)" % [xp_gained, ", ".join(bonus_parts)]
 
+	var modifier_name: String = String(data.get("modifier_name", ""))
+	if not modifier_name.is_empty():
+		# Append modifier to best-hand line in a softer color (since BestHandLabel
+		# is the only easy-to-augment label) — keeps panel layout untouched.
+		var current_text := best_hand_label.text
+		best_hand_label.text = "%s\nModifier: %s" % [current_text, modifier_name]
+
 	var leveled_up: bool = bool(data.get("leveled_up", false))
 	var prev: int = int(data.get("previous_level", 0))
 	var new_lvl: int = int(data.get("new_level", 0))
