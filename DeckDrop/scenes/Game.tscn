@@ -209,6 +209,28 @@ offset_right = 148.0
 offset_bottom = 170.0
 script = ExtResource("3_cardview")
 
+[node name="DiscardButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 20.0
+offset_right = -30.0
+offset_bottom = 100.0
+text = "DISCARD ×3"
+theme_override_font_sizes/font_size = 30
+
+[node name="HoldButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 115.0
+offset_right = -30.0
+offset_bottom = 195.0
+text = "HOLD ×3"
+theme_override_font_sizes/font_size = 30
+
 [node name="AdPlaceholder" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 12

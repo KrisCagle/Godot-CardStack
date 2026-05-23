@@ -31,6 +31,9 @@ const TIER_THRESHOLDS := [0, 500, 1500, 3000, 5000, 8000, 12000, 18000, 25000, 3
 const COMBO_TIME_MAX := 4.0
 const COMBO_INCREMENT := 0.2
 
+const DISCARDS_PER_RUN := 3
+const HOLDS_PER_RUN := 3
+
 const FIRST_TIME_BONUSES := {
 	"Pair": 0,
 	"Two Pair": 0,
@@ -58,6 +61,8 @@ const FIRST_TIME_BONUSES := {
 	$BottomArea/Preview2,
 ]
 @onready var game_over_panel: Control = $GameOverPanel
+@onready var discard_button: Button = $BottomArea/DiscardButton
+@onready var hold_button: Button = $BottomArea/HoldButton
 
 var _deck: Deck
 var _specials_rng: RandomNumberGenerator = null
@@ -80,6 +85,12 @@ var _round_best_score: int = 0
 var _dealer_tier: int = 1
 var _run_placements: int = 0  # total placements this run (for stats)
 
+# Player actions: discard burns the current card; hold sets it aside or swaps
+# with the held card. Both consume their respective counters.
+var _discards_remaining: int = DISCARDS_PER_RUN
+var _holds_remaining: int = HOLDS_PER_RUN
+var _held_card: Card = null
+
 var _shake_tween: Tween = null
 var _shake_orig: Vector2 = Vector2.ZERO
 
@@ -93,6 +104,8 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	game_over_panel.play_again_pressed.connect(_on_play_again_pressed)
 	game_over_panel.menu_pressed.connect(_on_menu_pressed)
+	discard_button.pressed.connect(_on_discard_pressed)
+	hold_button.pressed.connect(_on_hold_pressed)
 	_start_new_game()
 
 
@@ -125,6 +138,9 @@ func _start_new_game() -> void:
 	_dealer_target = Dealer.target_for_tier(_dealer_tier)
 	_run_placements = 0
 	_displayed_score = 0
+	_discards_remaining = DISCARDS_PER_RUN
+	_holds_remaining = HOLDS_PER_RUN
+	_held_card = null
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -557,6 +573,19 @@ func _refresh() -> void:
 			slot.set_card(_preview[i])
 	_refresh_combo_display()
 	_refresh_dealer_hud()
+	_refresh_actions()
+
+
+func _refresh_actions() -> void:
+	discard_button.text = "DISCARD ×%d" % _discards_remaining
+	discard_button.disabled = _discards_remaining <= 0 or _game_over
+
+	if _held_card == null:
+		hold_button.text = "HOLD ×%d" % _holds_remaining
+	else:
+		hold_button.text = "HOLD: %s%s   ×%d" % \
+			[_held_card.rank_label(), _held_card.suit_label(), _holds_remaining]
+	hold_button.disabled = _holds_remaining <= 0 or _game_over
 
 
 func _refresh_score() -> void:
@@ -942,6 +971,37 @@ func _on_play_again_pressed() -> void:
 
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Title.tscn")
+
+
+# Burns the current card without placing it. Advances queue, draws next.
+func _on_discard_pressed() -> void:
+	if _is_animating or _game_over or _current == null:
+		return
+	if _discards_remaining <= 0:
+		return
+	_discards_remaining -= 1
+	Sfx.play("place")
+	_advance_queue()
+	_refresh()
+
+
+# Holds the current card aside (if held slot empty) or swaps current with the
+# held card. Each press consumes one hold use.
+func _on_hold_pressed() -> void:
+	if _is_animating or _game_over or _current == null:
+		return
+	if _holds_remaining <= 0:
+		return
+	_holds_remaining -= 1
+	Sfx.play("place")
+	if _held_card == null:
+		_held_card = _current
+		_advance_queue()
+	else:
+		var tmp: Card = _held_card
+		_held_card = _current
+		_current = tmp
+	_refresh()
 
 
 func _on_back_pressed() -> void:
