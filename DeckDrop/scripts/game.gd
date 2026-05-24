@@ -123,6 +123,15 @@ var _time_stretch: bool = false
 var _in_cascade: bool = false
 var _xp_objective_mult: float = 1.0
 var _lucky_draw_remaining: int = 0
+# Second batch of perks
+var _hearts_heater: bool = false
+var _sharp_discount: bool = false
+var _double_down: bool = false           # perk acquired
+var _double_down_pending: bool = false   # consumed on first hand of round
+var _combo_shield: bool = false
+var _combo_reached_2_this_run: bool = false
+var _action_surge: bool = false
+var _bomb_score_bonus: int = 0
 var _active_combo_time: float = COMBO_TIME_MAX
 var _active_combo_increment: float = COMBO_INCREMENT
 var _active_round_length: int = ROUND_LENGTH
@@ -206,6 +215,14 @@ func _start_new_game() -> void:
 	_in_cascade = false
 	_xp_objective_mult = 1.0
 	_lucky_draw_remaining = 0
+	_hearts_heater = false
+	_sharp_discount = false
+	_double_down = false
+	_double_down_pending = false
+	_combo_shield = false
+	_combo_reached_2_this_run = false
+	_action_surge = false
+	_bomb_score_bonus = 0
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -371,7 +388,23 @@ func _process_cascades() -> void:
 					if rc != null and not rc.is_special and rc.rank >= Card.Rank.JACK:
 						royal_mult = 1.0 + _royal_treatment_bonus
 						break
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult))
+			# Hearts Heater perk: +20% per Heart in the scoring hand.
+			var hearts_mult: float = 1.0
+			if _hearts_heater:
+				var heart_count := 0
+				for cell in g.cells:
+					var p3: Vector2i = cell
+					var hc: Card = playfield.card_at(p3.x, p3.y)
+					if hc != null and not hc.is_special and hc.suit == Card.Suit.HEARTS:
+						heart_count += 1
+				hearts_mult = 1.0 + float(heart_count) * 0.2
+			# Double Down perk: first scoring hand of the round gets 2×, then
+			# the flag clears for the rest of the round.
+			var double_mult: float = 1.0
+			if _double_down_pending:
+				double_mult = 2.0
+				_double_down_pending = false
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -456,9 +489,21 @@ func _evaluate_round() -> void:
 		_clear_boss_rule()
 		_dealer_tier += 1
 		_dealer_target = Dealer.target_for_tier(_dealer_tier)
+		# Sharp Discount perk: trim boss dealer targets by 25%.
+		if _sharp_discount and bool(_dealer_target.get("is_boss", false)):
+			var dt: Dictionary = _dealer_target.duplicate(true)
+			dt["score"] = int(round(float(dt.get("score", 0)) * 0.75))
+			_dealer_target = dt
 		SaveData.update_max_stat("highest_dealer_tier", _dealer_tier)
 		if _dealer_tier >= 5:
 			_try_achievement("marathon")
+		# Round-start perk effects: Action Surge refills actions; Double Down
+		# rearms its single-hand bonus for the new round.
+		if _action_surge:
+			_discards_remaining = DISCARDS_PER_RUN
+			_holds_remaining = HOLDS_PER_RUN
+		if _double_down:
+			_double_down_pending = true
 		var is_boss := bool(_dealer_target.get("is_boss", false))
 		if is_boss:
 			_apply_boss_rule(String(_dealer_target.get("rule_id", "")))
@@ -590,6 +635,11 @@ func _advance_queue() -> void:
 
 
 func _draw_card_with_specials() -> Card:
+	# Lucky Draw perk: next N draws are guaranteed normal cards (skip the
+	# special roll entirely). Counter is set by the perk match arm.
+	if _lucky_draw_remaining > 0:
+		_lucky_draw_remaining -= 1
+		return _deck.draw_card()
 	var chance := _special_chance_for_tier(_tier) * _active_special_rate_mult
 	# Use the seeded _specials_rng so daily-mode special placements are
 	# deterministic too — without this, two players on the same daily seed
@@ -645,6 +695,10 @@ func _drop_bomb(col: int) -> void:
 	Sfx.play("boom")
 	_shake(16.0, 0.36)
 	_spawn_bomb_popup(col)
+	# Bomb Discount perk: bombs grant a flat score bonus on detonation.
+	if _bomb_score_bonus > 0:
+		score += _bomb_score_bonus
+		_refresh_score()
 	_on_placement_recorded(bomb)
 	SaveData.increment_stat("total_bombs_played")
 	_try_achievement("bombs_away")
@@ -818,10 +872,15 @@ func _update_combo_state() -> void:
 		_combo += 1
 		if _combo == 2:
 			Sfx.play("combo")
+			_combo_reached_2_this_run = true
 		if _combo >= 5:
 			_try_achievement("hot_streak")
 	else:
-		_combo = 1
+		# Combo Shield perk: once combo hit 2 this run, it can't drop below 2.
+		if _combo_shield and _combo_reached_2_this_run:
+			_combo = 2
+		else:
+			_combo = 1
 	SaveData.update_max_stat("highest_combo", _combo)
 	_update_objective("max_combo", _combo)
 
@@ -1028,6 +1087,31 @@ func _apply_perk(perk: Dictionary) -> void:
 			_xp_objective_mult = 1.5
 		"lucky_draw":
 			_lucky_draw_remaining = 5
+		"hearts_heater":
+			_hearts_heater = true
+		"quick_tap":
+			_active_combo_time += 3.0
+		"round_stretcher":
+			_active_round_length += 2
+		"sharp_discount":
+			_sharp_discount = true
+			# Apply to currently-rolled dealer if it's a boss.
+			if bool(_dealer_target.get("is_boss", false)):
+				var dt: Dictionary = _dealer_target.duplicate(true)
+				dt["score"] = int(round(float(dt.get("score", 0)) * 0.75))
+				_dealer_target = dt
+		"double_down":
+			_double_down = true
+			_double_down_pending = true  # arm for current round too
+		"combo_shield":
+			_combo_shield = true
+		"action_surge":
+			_action_surge = true
+			# Refill immediately for the upcoming round.
+			_discards_remaining = DISCARDS_PER_RUN
+			_holds_remaining = HOLDS_PER_RUN
+		"bomb_discount":
+			_bomb_score_bonus = 200
 
 
 # Activates a boss rule for the current round. Saves prior _combos_disabled

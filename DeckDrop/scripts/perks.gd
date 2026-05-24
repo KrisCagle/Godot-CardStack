@@ -93,6 +93,46 @@ const POOL := [
 		"description": "Next 5 cards are normal (no specials)",
 		"color": Color(0.75, 1.00, 0.75),
 	},
+	{
+		"id": "hearts_heater", "name": "Hearts Heater",
+		"description": "+20% score per Heart in scoring hand",
+		"color": Color(0.95, 0.40, 0.50),
+	},
+	{
+		"id": "quick_tap", "name": "Quick Tap",
+		"description": "Combo timer +3 seconds",
+		"color": Color(0.55, 0.95, 0.80),
+	},
+	{
+		"id": "round_stretcher", "name": "Round Stretcher",
+		"description": "Dealer rounds +2 placements",
+		"color": Color(0.75, 0.95, 0.45),
+	},
+	{
+		"id": "sharp_discount", "name": "Sharp Discount",
+		"description": "Boss dealer targets -25%",
+		"color": Color(1.00, 0.65, 0.45),
+	},
+	{
+		"id": "double_down", "name": "Double Down",
+		"description": "First scoring hand each round +100%",
+		"color": Color(1.00, 0.85, 0.30),
+	},
+	{
+		"id": "combo_shield", "name": "Combo Shield",
+		"description": "Combo can't drop below 2 once reached",
+		"color": Color(0.55, 0.85, 1.00),
+	},
+	{
+		"id": "action_surge", "name": "Action Surge",
+		"description": "Refill discards + holds each round",
+		"color": Color(0.70, 1.00, 0.65),
+	},
+	{
+		"id": "bomb_discount", "name": "Bomb Discount",
+		"description": "Bombs grant +200 score on detonation",
+		"color": Color(1.00, 0.50, 0.40),
+	},
 ]
 
 
