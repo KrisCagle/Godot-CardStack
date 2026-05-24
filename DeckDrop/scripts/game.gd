@@ -356,6 +356,9 @@ func _process_cascades() -> void:
 		for g in groups:
 			if _boss_rule == "no_rows" and String(g.get("axis", "")) == "row":
 				continue
+			# Boss: The Whale — columns don't score or clear this round.
+			if _boss_rule == "no_columns" and String(g.get("axis", "")) == "column":
+				continue
 			var has_clearable := false
 			for cell in g.cells:
 				var pc: Card = playfield.card_at(cell.x, cell.y)
@@ -435,9 +438,17 @@ func _process_cascades() -> void:
 			if earned > _best_hand_score:
 				_best_hand_score = earned
 				_best_hand_name = String(g.name)
-			# Boss: The Legend — only Trips+ count toward beating the dealer.
-			var counts_for_round_best: bool = (_boss_rule != "royal_only"
-				or int(g.get("rank", 0)) >= HandEvaluator.HandRank.THREE_OF_A_KIND)
+			# Boss rules that gate what counts toward beating the round:
+			#   royal_only — only Three of a Kind+ count (The Legend).
+			#   high_only  — only Flush+ count (The Boss).
+			# Hands below the threshold still score normally; they just don't
+			# advance _round_best_score against the dealer.
+			var rank_int: int = int(g.get("rank", 0))
+			var counts_for_round_best := true
+			if _boss_rule == "royal_only" and rank_int < HandEvaluator.HandRank.THREE_OF_A_KIND:
+				counts_for_round_best = false
+			elif _boss_rule == "high_only" and rank_int < HandEvaluator.HandRank.FLUSH:
+				counts_for_round_best = false
 			if counts_for_round_best and earned > _round_best_score:
 				_round_best_score = earned
 			_hands_seen_this_run[String(g.name)] = int(_hands_seen_this_run.get(g.name, 0)) + 1
@@ -1010,12 +1021,25 @@ func _on_placement_recorded(placed: Card) -> void:
 	_run_placements += 1
 	SaveData.increment_stat("total_cards_placed")
 	_update_objective("placements", 1)
-	if placed != null and placed.is_joker:
+	if placed == null:
+		return
+	if placed.is_joker:
 		SaveData.increment_stat("total_jokers_played")
 		_update_objective("jokers_placed", 1)
-	if placed != null and placed.is_bomb:
+	if placed.is_bomb:
 		SaveData.increment_stat("total_bombs_played")
 		_update_objective("bombs_detonated", 1)
+	# Objective hooks for the rest of the special pool.
+	if placed.is_anchor:
+		_update_objective("anchors_placed", 1)
+	if placed.is_flare:
+		_update_objective("flares_placed", 1)
+	if placed.is_crown:
+		_update_objective("crowns_placed", 1)
+	if placed.is_sweep:
+		_update_objective("waves_used", 1)
+	if placed.is_shuffle:
+		_update_objective("shuffles_used", 1)
 
 
 # Centralized combo update so the bomb and normal-placement paths share rules.
@@ -1205,6 +1229,7 @@ func _apply_perk(perk: Dictionary) -> void:
 	var id: String = String(perk.get("id", ""))
 	Sfx.play("win")
 	print("[perk] applied: %s" % id)
+	_update_objective("perks_picked", 1)
 	match id:
 		"discard_master":
 			_discards_remaining = mini(_discards_remaining + 2, 5)

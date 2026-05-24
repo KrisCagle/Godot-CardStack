@@ -12,6 +12,12 @@ extends RefCounted
 ##   placements        — +1 per card placed
 ##   jokers_placed     — +1 per Joker placed
 ##   bombs_detonated   — +1 per Bomb detonated
+##   anchors_placed    — +1 per Anchor placed
+##   flares_placed     — +1 per Flare placed
+##   crowns_placed     — +1 per Crown placed
+##   waves_used        — +1 per Sweep used
+##   shuffles_used     — +1 per Shuffle used
+##   perks_picked      — +1 per perk picked from the shop
 
 const POOL := [
 	{"id": "flush_one",      "name": "Score a Flush",            "type": "hand_count", "target_name": "Flush",            "target": 1,    "xp": 100},
@@ -30,6 +36,12 @@ const POOL := [
 	{"id": "joker_use",      "name": "Place a Joker",            "type": "jokers_placed",                                 "target": 1,    "xp": 100},
 	{"id": "bomb_use",       "name": "Detonate a Bomb",          "type": "bombs_detonated",                               "target": 1,    "xp": 100},
 	{"id": "cascade_3",      "name": "Trigger a 3-tier cascade", "type": "max_cascade",                                   "target": 3,    "xp": 250},
+	{"id": "anchor_count",   "name": "Place 3 Anchors",          "type": "anchors_placed",                                "target": 3,    "xp": 150},
+	{"id": "flare_count",    "name": "Place 2 Flares",           "type": "flares_placed",                                 "target": 2,    "xp": 200},
+	{"id": "crown_count",    "name": "Place 2 Crowns",           "type": "crowns_placed",                                 "target": 2,    "xp": 150},
+	{"id": "shuffle_use",    "name": "Use a Shuffle",            "type": "shuffles_used",                                 "target": 1,    "xp": 100},
+	{"id": "wave_use",       "name": "Use a Sweep",              "type": "waves_used",                                    "target": 1,    "xp": 100},
+	{"id": "perks_picked",   "name": "Pick 5 perks",             "type": "perks_picked",                                  "target": 5,    "xp": 250},
 ]
 
 

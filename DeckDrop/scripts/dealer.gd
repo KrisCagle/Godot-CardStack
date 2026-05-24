@@ -34,6 +34,7 @@ const ROSTER := [
 		"id": "whale", "name": "The Whale",
 		"score": 360,  "color": Color(0.45, 0.85, 1.00),
 		"description": "Plays big — pays bigger",
+		"is_boss": true, "rule_id": "no_columns", "rule_text": "Columns don't score",
 	},
 	{
 		"id": "cheat", "name": "The Cheat",
@@ -50,6 +51,7 @@ const ROSTER := [
 		"id": "boss", "name": "The Boss",
 		"score": 950,  "color": Color(1.00, 0.45, 0.55),
 		"description": "House never loses",
+		"is_boss": true, "rule_id": "high_only", "rule_text": "Only Flush+ counts",
 	},
 	{
 		"id": "ace", "name": "The Ace",
