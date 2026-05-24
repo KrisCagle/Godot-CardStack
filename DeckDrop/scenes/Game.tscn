@@ -225,22 +225,34 @@ layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -270.0
-offset_top = 20.0
+offset_top = 12.0
 offset_right = -30.0
-offset_bottom = 100.0
+offset_bottom = 76.0
 text = "DISCARD ×3"
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 26
+
+[node name="WagerButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 84.0
+offset_right = -30.0
+offset_bottom = 148.0
+text = "BANK  0"
+modulate = Color(1.0, 0.92, 0.55, 1.0)
+theme_override_font_sizes/font_size = 26
 
 [node name="HoldButton" type="Button" parent="BottomArea"]
 layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -270.0
-offset_top = 115.0
+offset_top = 156.0
 offset_right = -30.0
-offset_bottom = 195.0
+offset_bottom = 220.0
 text = "HOLD ×3"
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 26
 
 [node name="ObjectivesContainer" type="VBoxContainer" parent="BottomArea"]
 layout_mode = 1

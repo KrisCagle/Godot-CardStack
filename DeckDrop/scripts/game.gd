@@ -63,6 +63,7 @@ const FIRST_TIME_BONUSES := {
 @onready var game_over_panel: Control = $GameOverPanel
 @onready var discard_button: Button = $BottomArea/DiscardButton
 @onready var hold_button: Button = $BottomArea/HoldButton
+@onready var wager_button: Button = $BottomArea/WagerButton
 @onready var objectives_vbox: VBoxContainer = $BottomArea/ObjectivesContainer/ObjectivesVBox
 
 const PERK_SHOP_SCENE := preload("res://scenes/PerkShopPanel.tscn")
@@ -136,6 +137,18 @@ var _bomb_score_bonus: int = 0
 # Bonus cards: track Card refs that still have their "first hand 2×" pending.
 # Cleared as soon as any hand the card participates in scores.
 var _bonus_cards: Dictionary = {}
+
+# Wager / Banking: amount banked for the current dealer round. Win = pay 2×
+# back into score; lose = forfeit. One bank per round.
+var _wager: int = 0
+
+# Round target: each dealer round picks a random column the player should
+# fill with 4 standard placements to earn a flat bonus. Resets each round.
+const ROUND_TARGET_FILL := 4
+const ROUND_TARGET_BONUS := 400
+var _round_target_col: int = -1
+var _round_target_count: int = 0
+var _round_target_complete: bool = false
 var _active_combo_time: float = COMBO_TIME_MAX
 var _active_combo_increment: float = COMBO_INCREMENT
 var _active_round_length: int = ROUND_LENGTH
@@ -160,6 +173,7 @@ func _ready() -> void:
 	game_over_panel.menu_pressed.connect(_on_menu_pressed)
 	discard_button.pressed.connect(_on_discard_pressed)
 	hold_button.pressed.connect(_on_hold_pressed)
+	wager_button.pressed.connect(_on_wager_pressed)
 	_perk_shop = PERK_SHOP_SCENE.instantiate()
 	add_child(_perk_shop)
 	_start_new_game()
@@ -228,6 +242,8 @@ func _start_new_game() -> void:
 	_action_surge = false
 	_bomb_score_bonus = 0
 	_bonus_cards = {}
+	_wager = 0
+	_roll_round_target()
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -297,6 +313,7 @@ func _on_column_tapped(col: int) -> void:
 	if placed.is_crown:
 		_apply_crown_effect(col, target_row)
 	_on_placement_recorded(placed)
+	_track_round_target(col)
 	await _process_cascades()
 	_check_tier_up()
 
@@ -511,6 +528,14 @@ func _evaluate_round() -> void:
 		# Bosses double the win payout (100% of target vs 50%).
 		var bonus_mult: float = 1.0 if was_boss else 0.5
 		var bonus := int(round(float(dealer_score) * bonus_mult))
+		# Wager payout: if banked, return 2× the wager (net gain = wager amount).
+		if _wager > 0:
+			var payout: int = _wager * 2
+			score += payout
+			_spawn_mini_popup("WAGER  +%d" % payout,
+				Vector2(size.x * 0.5, 260.0),
+				Color(0.95, 1.00, 0.55))
+			_wager = 0
 		score += bonus
 		_refresh_score()
 		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
@@ -539,6 +564,8 @@ func _evaluate_round() -> void:
 			_holds_remaining = HOLDS_PER_RUN
 		if _double_down:
 			_double_down_pending = true
+		# Roll a fresh column target for the new round.
+		_roll_round_target()
 		var is_boss := bool(_dealer_target.get("is_boss", false))
 		if is_boss:
 			_apply_boss_rule(String(_dealer_target.get("rule_id", "")))
@@ -1166,6 +1193,16 @@ func _refresh_actions() -> void:
 			[_held_card.rank_label(), _held_card.suit_label(), _holds_remaining]
 	hold_button.disabled = _holds_remaining <= 0 or _game_over
 
+	# Wager: bank 20% of current score. Disabled once banked OR if score
+	# too low to make a meaningful bank.
+	if _wager > 0:
+		wager_button.text = "BANKED  %d" % _wager
+		wager_button.disabled = true
+	else:
+		var stake: int = int(round(float(score) * 0.20))
+		wager_button.text = "BANK  %d" % stake
+		wager_button.disabled = stake <= 0 or _game_over
+
 
 # Rebuilds the objectives display from the current progress/completion state.
 # Called from _refresh and from _update_objective when something changed.
@@ -1433,6 +1470,7 @@ func _apply_placement_bonuses(col: int, row: int, placed: Card) -> void:
 
 func _detect_partial_hits(col: int, row: int) -> Array:
 	var hits: Array = []
+	# Horizontal 3- and 4-windows containing (col, row).
 	for size: int in [3, 4]:
 		for offset: int in size:
 			var start_col: int = col - offset
@@ -1441,6 +1479,7 @@ func _detect_partial_hits(col: int, row: int) -> Array:
 			var hit := _check_partial_window(start_col, row, 1, 0, size)
 			if not hit.is_empty():
 				hits.append(hit)
+	# Vertical 3- and 4-windows.
 	for size: int in [3, 4]:
 		for offset: int in size:
 			var start_row: int = row - offset
@@ -1449,6 +1488,25 @@ func _detect_partial_hits(col: int, row: int) -> Array:
 			var hit := _check_partial_window(col, start_row, 0, 1, size)
 			if not hit.is_empty():
 				hits.append(hit)
+	# Diagonal 4-windows (Connect 4 four-in-a-row, both directions). The
+	# placed cell can be at any offset 0..3 along the window.
+	for offset: int in 4:
+		# ↘ diagonal: dx=1, dy=1
+		var sc: int = col - offset
+		var sr: int = row - offset
+		if sc >= 0 and sc + 4 <= PlayField.GRID_WIDTH \
+			and sr >= 0 and sr + 4 <= PlayField.GRID_HEIGHT:
+			var hit_dr := _check_partial_window(sc, sr, 1, 1, 4)
+			if not hit_dr.is_empty():
+				hits.append(hit_dr)
+		# ↙ diagonal: dx=-1, dy=1. Start at the rightmost cell of the window.
+		var sc2: int = col + offset
+		var sr2: int = row - offset
+		if sc2 - 3 >= 0 and sc2 < PlayField.GRID_WIDTH \
+			and sr2 >= 0 and sr2 + 4 <= PlayField.GRID_HEIGHT:
+			var hit_dl := _check_partial_window(sc2, sr2, -1, 1, 4)
+			if not hit_dl.is_empty():
+				hits.append(hit_dl)
 	return hits
 
 
@@ -1475,13 +1533,22 @@ func _classify_partial(cards: Array) -> Dictionary:
 			return {"name": "MINI TRIPS", "bonus": 30, "color": Color(1.00, 0.65, 0.95)}
 		return {"name": "", "bonus": 0, "color": Color.WHITE}
 	if size == 4:
+		# QUAD STRIKE — 4 same rank in a 4-window. Connect 4 four-in-a-row
+		# meets four-of-a-kind. Rarest 4-window pattern, highest payout.
+		var all_same_rank := true
+		for i in range(1, 4):
+			if cards[i].rank != cards[0].rank:
+				all_same_rank = false
+				break
+		if all_same_rank:
+			return {"name": "QUAD STRIKE", "bonus": 150, "color": Color(0.85, 0.40, 1.00)}
 		var same_suit := true
 		for i in range(1, 4):
 			if cards[i].suit != cards[0].suit:
 				same_suit = false
 				break
 		if same_suit:
-			return {"name": "FLUSH+", "bonus": 50, "color": Color(0.50, 0.95, 0.60)}
+			return {"name": "FLUSH+", "bonus": 75, "color": Color(0.50, 0.95, 0.60)}
 		var ranks: Array = []
 		for c in cards:
 			ranks.append(c.rank)
@@ -1492,7 +1559,7 @@ func _classify_partial(cards: Array) -> Dictionary:
 				distinct = false
 				break
 		if distinct and ranks[3] - ranks[0] == 3:
-			return {"name": "STRAIGHT+", "bonus": 50, "color": Color(1.00, 0.85, 0.40)}
+			return {"name": "STRAIGHT+", "bonus": 75, "color": Color(1.00, 0.85, 0.40)}
 		return {"name": "", "bonus": 0, "color": Color.WHITE}
 	return {"name": "", "bonus": 0, "color": Color.WHITE}
 
@@ -1768,6 +1835,51 @@ func _on_discard_pressed() -> void:
 
 # Holds the current card aside (if held slot empty) or swaps current with the
 # held card. Each press consumes one hold use.
+# Rolls a fresh round target. Picks a random column and tints it on the
+# playfield. Called at game start and at the start of each new dealer round.
+func _roll_round_target() -> void:
+	_round_target_col = randi() % PlayField.GRID_WIDTH
+	_round_target_count = 0
+	_round_target_complete = false
+	if playfield != null:
+		playfield.target_col = _round_target_col
+		playfield.queue_redraw()
+
+
+# Each standard column tap counts toward the round target if it lands in the
+# tinted column. On hitting the threshold, awards the flat bonus + popup.
+# Specials (Sweep / Shuffle / Mirror / Burst) intentionally don't count —
+# only deliberate column-tap placements.
+func _track_round_target(col: int) -> void:
+	if _round_target_complete or _round_target_col < 0:
+		return
+	if col != _round_target_col:
+		return
+	_round_target_count += 1
+	if _round_target_count >= ROUND_TARGET_FILL:
+		_round_target_complete = true
+		score += ROUND_TARGET_BONUS
+		_spawn_dealer_popup("TARGET FILLED  +%d" % ROUND_TARGET_BONUS,
+			Color(1.00, 0.85, 0.40))
+		_refresh_score()
+
+
+func _on_wager_pressed() -> void:
+	if _game_over or _wager > 0:
+		return
+	var stake: int = int(round(float(score) * 0.20))
+	if stake <= 0:
+		return
+	_wager = stake
+	score -= stake
+	Sfx.play("place")
+	_spawn_mini_popup("BANK  %d" % stake,
+		Vector2(size.x * 0.5, 220.0),
+		Color(0.95, 0.85, 0.40))
+	_refresh_score()
+	_refresh_actions()
+
+
 func _on_hold_pressed() -> void:
 	if _is_animating or _game_over or _current == null:
 		return
