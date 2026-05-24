@@ -1,13 +1,16 @@
 class_name Card
 extends RefCounted
 ## Card value object — a suit + rank for normal cards, or a special "kind" for
-## wilds (Joker — counts as any rank/suit) and bombs (Bomb — clears its column
-## on placement, no scoring). Property accessors (is_joker, is_bomb, is_special)
-## let consumers branch cleanly without touching the kind int.
+## wilds (Joker — any rank/suit), bombs (Bomb — clears column on placement),
+## anchors (Anchor — real card that never clears), flares (Flare — real card
+## that triples its hand's score then breaks), surges (Surge — real card +
+## extra combo step on placement), crowns (Crown — real card that bumps all
+## 4-neighbor ranks on placement), sweeps (Sweep — clears the bottom row),
+## and shuffles (Shuffle — reorders the whole grid).
 
 enum Suit { CLUBS, DIAMONDS, HEARTS, SPADES }
 enum Rank { TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE }
-enum Kind { NORMAL, JOKER, BOMB, SWEEP, MULTI, STEEL, GLASS, PROMOTE, SHUFFLE }
+enum Kind { NORMAL, JOKER, BOMB, SWEEP, SURGE, ANCHOR, FLARE, CROWN, SHUFFLE }
 
 const RANK_LABELS := ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 const SUIT_LABELS := ["♣", "♦", "♥", "♠"]
@@ -28,21 +31,21 @@ var is_sweep: bool:
 	get:
 		return kind == Kind.SWEEP
 
-var is_multi: bool:
+var is_surge: bool:
 	get:
-		return kind == Kind.MULTI
+		return kind == Kind.SURGE
 
-var is_steel: bool:
+var is_anchor: bool:
 	get:
-		return kind == Kind.STEEL
+		return kind == Kind.ANCHOR
 
-var is_glass: bool:
+var is_flare: bool:
 	get:
-		return kind == Kind.GLASS
+		return kind == Kind.FLARE
 
-var is_promote: bool:
+var is_crown: bool:
 	get:
-		return kind == Kind.PROMOTE
+		return kind == Kind.CROWN
 
 var is_shuffle: bool:
 	get:
@@ -71,32 +74,29 @@ static func make_sweep() -> Card:
 	return Card.new(0, 0, Kind.SWEEP)
 
 
-# Multi is a real card (rank + suit) that ALSO grants +1 extra combo on
-# placement. Pass an RNG (e.g. _specials_rng) for daily-mode determinism.
-static func make_multi(rng: RandomNumberGenerator = null) -> Card:
-	return _make_random_kind(Kind.MULTI, rng)
+# Surge: real card (rank + suit) that ALSO grants +1 extra combo on placement.
+static func make_surge(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.SURGE, rng)
 
 
-# Steel: real card with rank+suit that NEVER clears. Permanent blocker;
-# strategic for parking high-value cards in spots you don't want disturbed.
-static func make_steel(rng: RandomNumberGenerator = null) -> Card:
-	return _make_random_kind(Kind.STEEL, rng)
+# Anchor: real card with rank+suit that NEVER clears. Permanent blocker.
+static func make_anchor(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.ANCHOR, rng)
 
 
-# Glass: real card that triples the score of any hand it participates in,
-# then clears with the hand (glass breaks).
-static func make_glass(rng: RandomNumberGenerator = null) -> Card:
-	return _make_random_kind(Kind.GLASS, rng)
+# Flare: real card that triples its hand's score, then breaks with the hand.
+static func make_flare(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.FLARE, rng)
 
 
-# Promote: real card that on placement bumps all 4-neighbor non-special
-# cards by +1 rank (capped at Ace).
-static func make_promote(rng: RandomNumberGenerator = null) -> Card:
-	return _make_random_kind(Kind.PROMOTE, rng)
+# Crown: real card that on placement bumps all 4-neighbor non-special cards
+# by +1 rank (capped at Ace).
+static func make_crown(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.CROWN, rng)
 
 
-# Shuffle: consumed on placement (doesn't enter the grid); reorders all
-# cards currently on the grid into random columns.
+# Shuffle: consumed on placement (doesn't enter the grid); reorders all cards
+# currently on the grid into random columns.
 static func make_shuffle() -> Card:
 	return Card.new(0, 0, Kind.SHUFFLE)
 
@@ -122,7 +122,7 @@ func rank_label() -> String:
 		return "≈"
 	if kind == Kind.SHUFFLE:
 		return "↻"
-	# MULTI, STEEL, GLASS, PROMOTE keep their real rank label so the player
+	# SURGE, ANCHOR, FLARE, CROWN keep their real rank label so the player
 	# can plan around their value in scoring.
 	return RANK_LABELS[rank] if rank >= 0 and rank < RANK_LABELS.size() else "?"
 
@@ -148,8 +148,8 @@ func suit_color() -> Color:
 		return Color(0.30, 0.85, 0.70)
 	if kind == Kind.SHUFFLE:
 		return Color(0.85, 0.55, 1.00)
-	# NORMAL, MULTI, STEEL, GLASS, PROMOTE use theme suit colors so the
-	# real rank/suit reads through their colored borders.
+	# NORMAL, SURGE, ANCHOR, FLARE, CROWN use theme suit colors so the real
+	# rank/suit reads through their colored borders.
 	var theme := Themes.current()
 	if suit == Suit.HEARTS or suit == Suit.DIAMONDS:
 		return theme.card_text_red

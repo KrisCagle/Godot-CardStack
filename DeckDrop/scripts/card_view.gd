@@ -52,20 +52,20 @@ static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
 	elif card.is_shuffle:
 		face_color = Color(0.96, 0.88, 1.00)
 		border_color = Color(0.75, 0.45, 1.00)
-	elif card.is_multi:
+	elif card.is_surge:
 		# Real card face + thick purple border so player sees the rank
 		# and immediately reads "this is enhanced."
 		border_color = Color(0.85, 0.45, 1.00)
 		border_width = 4.0
-	elif card.is_steel:
+	elif card.is_anchor:
 		# Gray steel border — this card never clears.
 		border_color = Color(0.55, 0.58, 0.65)
 		border_width = 5.0
-	elif card.is_glass:
+	elif card.is_flare:
 		# Cyan glass border — fragile but triples hand score.
 		border_color = Color(0.40, 0.85, 1.00)
 		border_width = 4.0
-	elif card.is_promote:
+	elif card.is_crown:
 		# Gold promote border — bumps neighbors on placement.
 		border_color = Color(0.95, 0.78, 0.30)
 		border_width = 4.0

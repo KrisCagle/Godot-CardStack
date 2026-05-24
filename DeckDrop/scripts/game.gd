@@ -230,7 +230,7 @@ func _on_column_tapped(col: int) -> void:
 
 	_update_combo_state()
 	# Multi grants an extra combo step (only when combos are enabled by modifier).
-	if _current.is_multi and not _combos_disabled:
+	if _current.is_surge and not _combos_disabled:
 		_combo += 1
 		SaveData.update_max_stat("highest_combo", _combo)
 		_update_objective("max_combo", _combo)
@@ -241,8 +241,8 @@ func _on_column_tapped(col: int) -> void:
 	Sfx.play("place")
 	playfield.place_card(placed, col)
 	_apply_placement_bonuses(col, target_row, placed)
-	if placed.is_promote:
-		_apply_promote_effect(col, target_row)
+	if placed.is_crown:
+		_apply_crown_effect(col, target_row)
 	_on_placement_recorded(placed)
 	await _process_cascades()
 	_check_tier_up()
@@ -313,7 +313,7 @@ func _process_cascades() -> void:
 			for cell in g.cells:
 				var p: Vector2i = cell
 				var gc: Card = playfield.card_at(p.x, p.y)
-				if gc != null and gc.is_glass:
+				if gc != null and gc.is_flare:
 					has_glass = true
 					break
 			var glass_mult: float = 3.0 if has_glass else 1.0
@@ -366,7 +366,7 @@ func _process_cascades() -> void:
 			# on the grid as permanent blockers.
 			var p: Vector2i = c
 			var card_here: Card = playfield.card_at(p.x, p.y)
-			if card_here != null and card_here.is_steel:
+			if card_here != null and card_here.is_anchor:
 				continue
 			unique_cells.append(c)
 
@@ -548,13 +548,13 @@ func _draw_card_with_specials() -> Card:
 			1:
 				return Card.make_sweep()
 			2:
-				return Card.make_multi(_specials_rng)
+				return Card.make_surge(_specials_rng)
 			3:
-				return Card.make_steel(_specials_rng)
+				return Card.make_anchor(_specials_rng)
 			4:
-				return Card.make_glass(_specials_rng)
+				return Card.make_flare(_specials_rng)
 			5:
-				return Card.make_promote(_specials_rng)
+				return Card.make_crown(_specials_rng)
 			_:
 				return Card.make_shuffle()
 	return _deck.draw_card()
@@ -654,7 +654,7 @@ func _drop_sweep(col: int) -> void:
 
 # Promote effect: bump all 4-neighbor non-special cards by +1 rank, capped
 # at Ace. Fires a small popup showing how many cards got bumped.
-func _apply_promote_effect(col: int, row: int) -> void:
+func _apply_crown_effect(col: int, row: int) -> void:
 	var neighbors := [
 		Vector2i(col - 1, row),
 		Vector2i(col + 1, row),
