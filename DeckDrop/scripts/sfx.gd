@@ -61,43 +61,88 @@ func _setup_music() -> void:
 	_music_player = AudioStreamPlayer.new()
 	_music_player.volume_db = MUSIC_DB
 	add_child(_music_player)
-	_music_player.stream = _bake_ambient_loop()
+	_music_player.stream = _bake_casino_loop()
 
 
-# 16-second ambient pad: four-chord progression (Am - F - C - G), three voices
-# per chord, gentle amplitude pulse per voice. Smoothed at the loop seam so we
-# don't pop on each loop back. Tuned quiet and slow so it doesn't fight SFX.
-func _bake_ambient_loop() -> AudioStreamWAV:
-	var duration: float = 16.0
+# 8-second upbeat casino loop, 120 BPM, 4 measures of 4/4. Each measure has:
+#   - Walking bass on every beat (root → third → fifth → third, octave-doubled)
+#   - Chord stab on beats 2 and 4 (snappy attack, fast decay)
+#   - White-noise hi-hat tick on every beat (very short, gives drive)
+# Progression: C major - A minor - F major - G major. Cross-faded loop seam.
+func _bake_casino_loop() -> AudioStreamWAV:
+	var bpm: float = 120.0
+	var beat_duration: float = 60.0 / bpm
+	var measures: int = 4
+	var beats_per_measure: int = 4
+	var total_beats: int = measures * beats_per_measure
+	var duration: float = float(total_beats) * beat_duration
 	var n: int = int(SAMPLE_RATE * duration)
 	var samples := PackedFloat32Array()
 	samples.resize(n)
-	var vol: float = db_to_linear(-4.0)
 
-	# Each chord = three voices (root / third / fifth-ish).
-	var chords: Array = [
-		[220.00, 261.63, 329.63],  # Am  (A3 / C4 / E4)
-		[174.61, 220.00, 261.63],  # F   (F3 / A3 / C4)
-		[261.63, 329.63, 392.00],  # C   (C4 / E4 / G4)
-		[196.00, 246.94, 293.66],  # G   (G3 / B3 / D4)
+	# Each measure: {chord stab voices, walking bass per beat}.
+	# Bass frequencies are an octave below the chord root for body.
+	var progression: Array = [
+		{
+			"chord": [130.81, 164.81, 196.00],          # C major triad
+			"bass":  [65.40, 82.40, 98.00, 82.40],      # C E G E
+		},
+		{
+			"chord": [110.00, 130.81, 164.81],          # A minor
+			"bass":  [55.00, 65.40, 82.40, 65.40],      # A C E C
+		},
+		{
+			"chord": [174.61, 220.00, 261.63],          # F major
+			"bass":  [87.30, 110.00, 130.81, 110.00],   # F A C A
+		},
+		{
+			"chord": [196.00, 246.94, 293.66],          # G major
+			"bass":  [98.00, 123.47, 146.83, 123.47],   # G B D B
+		},
 	]
-	var samples_per_chord: int = n / chords.size()
+	var samples_per_beat: int = int(SAMPLE_RATE * beat_duration)
+	var bass_vol: float = db_to_linear(-6.0)
+	var chord_vol: float = db_to_linear(-9.0)
+	var hat_vol: float = db_to_linear(-18.0)
 
-	for ci in chords.size():
-		var freqs: Array = chords[ci]
-		var start: int = ci * samples_per_chord
-		for i in samples_per_chord:
-			var t: float = float(i) / float(SAMPLE_RATE)
-			# 0.25 Hz amplitude pulse — gives the pad a breath.
-			var env: float = 0.55 + 0.20 * sin(t * 0.25 * TAU)
-			var s: float = 0.0
-			for f in freqs:
-				s += sin(t * float(f) * TAU)
-			s /= float(freqs.size())
-			samples[start + i] = s * env * vol
+	for measure in measures:
+		var prog: Dictionary = progression[measure]
+		var chord_freqs: Array = prog.chord
+		var bass_freqs: Array = prog.bass
 
-	# Cross-fade the loop boundary (50ms each side) — kills the "tick" you
-	# normally hear when a non-zero sample repeats.
+		for beat in beats_per_measure:
+			var beat_start: int = (measure * beats_per_measure + beat) * samples_per_beat
+			var bass_freq: float = float(bass_freqs[beat])
+
+			# Walking bass note — slightly warmer than pure sine via subtle 3rd harmonic.
+			for i in samples_per_beat:
+				var t: float = float(i) / float(SAMPLE_RATE)
+				var env: float = exp(-t * 3.5)
+				var s: float = sin(t * bass_freq * TAU) - 0.25 * sin(t * bass_freq * 3.0 * TAU)
+				samples[beat_start + i] += s * env * bass_vol
+
+			# Chord stab on beats 2 and 4 — short, punchy.
+			if beat == 1 or beat == 3:
+				for i in samples_per_beat:
+					var t: float = float(i) / float(SAMPLE_RATE)
+					var env: float = exp(-t * 14.0)
+					var s: float = 0.0
+					for f in chord_freqs:
+						s += sin(t * float(f) * TAU)
+					s /= float(chord_freqs.size())
+					samples[beat_start + i] += s * env * chord_vol
+
+			# Hi-hat tick on every beat — 40ms noise burst, very quick decay.
+			var hat_samples: int = mini(int(SAMPLE_RATE * 0.04), samples_per_beat)
+			for i in hat_samples:
+				var t: float = float(i) / float(SAMPLE_RATE)
+				var env: float = exp(-t * 80.0)
+				var noise: float = (randf() * 2.0 - 1.0)
+				samples[beat_start + i] += noise * env * hat_vol
+
+	# Clamp + cross-fade loop seam (50ms each side) so the repeat doesn't tick.
+	for i in n:
+		samples[i] = clampf(samples[i], -1.0, 1.0)
 	var fade: int = int(SAMPLE_RATE * 0.05)
 	for i in fade:
 		var k: float = float(i) / float(fade)
@@ -112,7 +157,7 @@ func _bake_ambient_loop() -> AudioStreamWAV:
 	var bytes := PackedByteArray()
 	bytes.resize(samples.size() * 2)
 	for i in samples.size():
-		var s: float = clampf(samples[i], -1.0, 1.0)
+		var s: float = samples[i]
 		var v: int = int(s * 32767.0) & 0xFFFF
 		bytes[i * 2] = v & 0xFF
 		bytes[i * 2 + 1] = (v >> 8) & 0xFF
