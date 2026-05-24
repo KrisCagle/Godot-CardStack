@@ -39,14 +39,23 @@ static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
 	var theme := Themes.current()
 	var face_color: Color = theme.card_face
 	var border_color: Color = theme.card_border
+	var border_width: float = 2.0
 	if card.is_bomb:
 		face_color = Color(1.00, 0.84, 0.82)
 		border_color = Color(0.55, 0.18, 0.18)
 	elif card.is_joker:
 		face_color = Color(1.00, 0.96, 0.80)
 		border_color = Color(0.65, 0.50, 0.15)
+	elif card.is_sweep:
+		face_color = Color(0.88, 1.00, 0.92)
+		border_color = Color(0.25, 0.70, 0.55)
+	elif card.is_multi:
+		# Real card face + thick purple border so player sees the rank
+		# and immediately reads "this is enhanced."
+		border_color = Color(0.85, 0.45, 1.00)
+		border_width = 4.0
 	canvas.draw_rect(rect, face_color, true)
-	canvas.draw_rect(rect, border_color, false, 2.0)
+	canvas.draw_rect(rect, border_color, false, border_width)
 
 	var font := canvas.get_theme_default_font()
 	var fg := card.suit_color()

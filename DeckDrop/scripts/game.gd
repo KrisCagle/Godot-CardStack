@@ -209,6 +209,9 @@ func _on_column_tapped(col: int) -> void:
 	if _current.is_bomb:
 		await _drop_bomb(col)
 		return
+	if _current.is_sweep:
+		await _drop_sweep(col)
+		return
 
 	var target_row: int = playfield.lowest_empty_row(col)
 	if target_row < 0:
@@ -216,6 +219,11 @@ func _on_column_tapped(col: int) -> void:
 		return
 
 	_update_combo_state()
+	# Multi grants an extra combo step (only when combos are enabled by modifier).
+	if _current.is_multi and not _combos_disabled:
+		_combo += 1
+		SaveData.update_max_stat("highest_combo", _combo)
+		_update_objective("max_combo", _combo)
 
 	_is_animating = true
 	var placed := _current
@@ -480,9 +488,18 @@ func _draw_card_with_specials() -> Card:
 	# deterministic too — without this, two players on the same daily seed
 	# could see different Joker/Bomb positions.
 	if _specials_rng.randf() < chance:
+		# Joker share comes off the top; remaining specials (Bomb / Sweep /
+		# Multi) split the rest in equal thirds so the joker_ratio modifier
+		# still does its job cleanly.
 		if _specials_rng.randf() < _active_joker_ratio:
 			return Card.make_joker()
-		return Card.make_bomb()
+		var roll := _specials_rng.randf()
+		if roll < 0.34:
+			return Card.make_bomb()
+		elif roll < 0.67:
+			return Card.make_sweep()
+		else:
+			return Card.make_multi(_specials_rng)
 	return _deck.draw_card()
 
 
@@ -516,6 +533,55 @@ func _drop_bomb(col: int) -> void:
 	SaveData.increment_stat("total_bombs_played")
 	_try_achievement("bombs_away")
 	await get_tree().create_timer(0.30).timeout
+
+	_round_placements += 1
+	if _round_placements >= _active_round_length:
+		await _evaluate_round()
+		if _game_over:
+			return
+
+	_advance_queue()
+	_combo_timer = _active_combo_time
+	_refresh()
+	_is_animating = false
+
+
+# Sweep special: drops into the tapped column visually, then clears the bottom
+# row of the grid (regardless of hand) and is consumed. Does not enter the grid.
+func _drop_sweep(col: int) -> void:
+	_is_animating = true
+	var sweep := _current
+
+	_update_combo_state()
+
+	var visual_row: int = playfield.lowest_empty_row(col)
+	if visual_row < 0:
+		visual_row = 0
+	await _animate_drop(sweep, col, visual_row)
+
+	# Clear bottom row across all columns.
+	var cells_to_clear: Array = []
+	var bottom_row: int = PlayField.GRID_HEIGHT - 1
+	for x in PlayField.GRID_WIDTH:
+		if playfield.card_at(x, bottom_row) != null:
+			cells_to_clear.append(Vector2i(x, bottom_row))
+
+	if not cells_to_clear.is_empty():
+		_spawn_clear_particles(cells_to_clear)
+		playfield.clear_cells(cells_to_clear)
+	Sfx.play("clear")
+	_spawn_dealer_popup("SWEEP!", Color(0.40, 0.90, 0.75))
+	_shake(12.0, 0.28)
+	_on_placement_recorded(sweep)
+	await get_tree().create_timer(CLEAR_DELAY).timeout
+	playfield.apply_gravity()
+	await get_tree().create_timer(GRAVITY_DELAY).timeout
+	await _process_cascades()
+	_check_tier_up()
+
+	if playfield.is_any_column_full():
+		_end_run("column_overflow")
+		return
 
 	_round_placements += 1
 	if _round_placements >= _active_round_length:
