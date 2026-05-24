@@ -1215,34 +1215,56 @@ func _spawn_cell_glow(g: Dictionary) -> void:
 
 
 func _show_round_splash(text: String, subtitle: String = "") -> void:
-	var full := text
+	# Title at 120pt + optional subtitle at 48pt with autowrap. Previous version
+	# stuffed both into one Label so boss subtitles like "THE LEGEND — Only
+	# Trips+ count" rendered at 120pt and ran way off-screen.
+	const MAX_WIDTH := 980.0
+	var container := VBoxContainer.new()
+	container.alignment = BoxContainer.ALIGNMENT_CENTER
+	container.z_index = 150
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_theme_constant_override("separation", 8)
+	add_child(container)
+
+	var title_label := Label.new()
+	title_label.text = text
+	title_label.add_theme_font_size_override("font_size", 120)
+	title_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.65))
+	title_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	title_label.add_theme_constant_override("outline_size", 16)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_label.custom_minimum_size = Vector2(MAX_WIDTH, 0)
+	container.add_child(title_label)
+
 	if not subtitle.is_empty():
-		full = "%s\n%s" % [text, subtitle]
-	var splash := Label.new()
-	splash.text = full
-	splash.add_theme_font_size_override("font_size", 120)
-	splash.add_theme_color_override("font_color", Color(1.0, 0.95, 0.65))
-	splash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
-	splash.add_theme_constant_override("outline_size", 16)
-	splash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	splash.z_index = 150
-	splash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(splash)
+		var sub_label := Label.new()
+		sub_label.text = subtitle
+		sub_label.add_theme_font_size_override("font_size", 48)
+		sub_label.add_theme_color_override("font_color", Color(1.0, 0.90, 0.55))
+		sub_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
+		sub_label.add_theme_constant_override("outline_size", 10)
+		sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sub_label.custom_minimum_size = Vector2(MAX_WIDTH, 0)
+		container.add_child(sub_label)
+
 	await get_tree().process_frame
-	splash.position = (size - splash.size) * 0.5
-	splash.position.y -= 120.0
-	splash.pivot_offset = splash.size * 0.5
-	splash.scale = Vector2(0.4, 0.4)
-	splash.modulate.a = 0.0
+	container.size = container.get_combined_minimum_size()
+	container.position = (size - container.size) * 0.5
+	container.position.y -= 80.0
+	container.pivot_offset = container.size * 0.5
+	container.scale = Vector2(0.4, 0.4)
+	container.modulate.a = 0.0
 
 	var t := create_tween().set_parallel(true)
-	t.tween_property(splash, "scale", Vector2(1.0, 1.0), 0.30) \
+	t.tween_property(container, "scale", Vector2(1.0, 1.0), 0.30) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_property(splash, "modulate:a", 1.0, 0.20)
-	t.tween_property(splash, "modulate:a", 0.0, 0.40).set_delay(0.85)
+	t.tween_property(container, "modulate:a", 1.0, 0.20)
+	t.tween_property(container, "modulate:a", 0.0, 0.40).set_delay(0.85)
 
 	await t.finished
-	splash.queue_free()
+	container.queue_free()
 
 
 func _spawn_mini_popup(text: String, world_pos: Vector2, color: Color) -> void:

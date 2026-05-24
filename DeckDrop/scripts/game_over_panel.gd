@@ -61,6 +61,9 @@ func show_summary(data: Dictionary) -> void:
 		xp_label.text = "+%d XP" % xp_gained
 	else:
 		xp_label.text = "+%d XP   (%s)" % [xp_gained, ", ".join(bonus_parts)]
+	# Long bonus breakdowns can overflow the panel width — let it wrap.
+	xp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	best_hand_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	var modifier_name: String = String(data.get("modifier_name", ""))
 	if not modifier_name.is_empty():
