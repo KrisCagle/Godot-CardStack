@@ -23,6 +23,7 @@ const ROSTER := [
 		"id": "sharp", "name": "The Sharp",
 		"score": 160,  "color": Color(0.55, 0.95, 0.70),
 		"description": "Reads the table cold",
+		"is_boss": true, "rule_id": "no_rows", "rule_text": "Rows don't score",
 	},
 	{
 		"id": "magician", "name": "The Magician",
@@ -38,6 +39,7 @@ const ROSTER := [
 		"id": "cheat", "name": "The Cheat",
 		"score": 500,  "color": Color(1.00, 0.55, 0.50),
 		"description": "Always one card up",
+		"is_boss": true, "rule_id": "no_discards", "rule_text": "Discards locked",
 	},
 	{
 		"id": "royal", "name": "The Royal",
@@ -53,11 +55,13 @@ const ROSTER := [
 		"id": "ace", "name": "The Ace",
 		"score": 1400, "color": Color(0.45, 1.00, 0.85),
 		"description": "Top of the deck",
+		"is_boss": true, "rule_id": "no_combos", "rule_text": "Combos disabled",
 	},
 	{
 		"id": "legend", "name": "The Legend",
 		"score": 2500, "color": Color(1.00, 0.85, 0.25),
 		"description": "Royalty of the floor",
+		"is_boss": true, "rule_id": "royal_only", "rule_text": "Only Trips+ count",
 	},
 ]
 

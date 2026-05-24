@@ -107,6 +107,11 @@ var _objective_xp_earned: int = 0
 # constant defaults so the rest of the file can read live values without
 # remembering "did the modifier touch this?"
 var _modifier: Dictionary = {}
+# Active boss rule (empty string = no boss rule). Set when transitioning to a
+# boss dealer; cleared on next transition. Effects branch off this value in
+# _process_cascades, _refresh_actions, and the combo path.
+var _boss_rule: String = ""
+var _combos_saved_state: bool = false  # restored when no_combos boss ends
 var _active_combo_time: float = COMBO_TIME_MAX
 var _active_combo_increment: float = COMBO_INCREMENT
 var _active_round_length: int = ROUND_LENGTH
@@ -180,6 +185,8 @@ func _start_new_game() -> void:
 	else:
 		_modifier = Modifiers.roll_random()
 	_apply_modifier(_modifier)
+	_boss_rule = ""
+	_combos_saved_state = _combos_disabled
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -292,6 +299,9 @@ func _process_cascades() -> void:
 
 		var all_cells: Array = []
 		for g in groups:
+			# Boss: The Sharp — rows don't score or clear this round.
+			if _boss_rule == "no_rows" and String(g.get("axis", "")) == "row":
+				continue
 			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult))
 			score += earned
 			all_cells.append_array(g.cells)
@@ -299,7 +309,10 @@ func _process_cascades() -> void:
 			if earned > _best_hand_score:
 				_best_hand_score = earned
 				_best_hand_name = String(g.name)
-			if earned > _round_best_score:
+			# Boss: The Legend — only Trips+ count toward beating the dealer.
+			var counts_for_round_best: bool = (_boss_rule != "royal_only"
+				or int(g.get("rank", 0)) >= HandEvaluator.HandRank.THREE_OF_A_KIND)
+			if counts_for_round_best and earned > _round_best_score:
 				_round_best_score = earned
 			_hands_seen_this_run[String(g.name)] = int(_hands_seen_this_run.get(g.name, 0)) + 1
 			SaveData.increment_stat("total_hands_cleared")
@@ -348,7 +361,10 @@ func _evaluate_round() -> void:
 	var dealer_name: String = String(_dealer_target.get("name", "?"))
 
 	if _round_best_score > dealer_score:
-		var bonus := int(round(float(dealer_score) * 0.5))
+		var was_boss := bool(_dealer_target.get("is_boss", false))
+		# Bosses double the win payout (100% of target vs 50%).
+		var bonus_mult: float = 1.0 if was_boss else 0.5
+		var bonus := int(round(float(dealer_score) * bonus_mult))
 		score += bonus
 		_refresh_score()
 		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
@@ -359,13 +375,23 @@ func _evaluate_round() -> void:
 		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
 		_shake(10.0, 0.22)
 		await get_tree().create_timer(0.55).timeout
+		_clear_boss_rule()
 		_dealer_tier += 1
 		_dealer_target = Dealer.target_for_tier(_dealer_tier)
 		SaveData.update_max_stat("highest_dealer_tier", _dealer_tier)
 		if _dealer_tier >= 5:
 			_try_achievement("marathon")
-		await _show_round_splash("ROUND %d" % _dealer_tier,
-			"— %s —" % String(_dealer_target.get("name", "?")).to_upper())
+		var is_boss := bool(_dealer_target.get("is_boss", false))
+		if is_boss:
+			_apply_boss_rule(String(_dealer_target.get("rule_id", "")))
+			await _show_round_splash("BOSS · ROUND %d" % _dealer_tier,
+				"%s — %s" % [
+					String(_dealer_target.get("name", "?")).to_upper(),
+					String(_dealer_target.get("rule_text", "")),
+				])
+		else:
+			await _show_round_splash("ROUND %d" % _dealer_tier,
+				"— %s —" % String(_dealer_target.get("name", "?")).to_upper())
 		# Perk shop appears between rounds — Balatro-style build-up.
 		_perk_shop.show_choices(Perks.roll_choice())
 		var picked: Dictionary = await _perk_shop.perk_picked
@@ -716,7 +742,9 @@ func _refresh() -> void:
 
 func _refresh_actions() -> void:
 	discard_button.text = "DISCARD ×%d" % _discards_remaining
-	discard_button.disabled = _discards_remaining <= 0 or _game_over
+	# Boss: The Cheat — discards locked while this round is active.
+	discard_button.disabled = _discards_remaining <= 0 or _game_over \
+		or _boss_rule == "no_discards"
 
 	if _held_card == null:
 		hold_button.text = "HOLD ×%d" % _holds_remaining
@@ -813,6 +841,23 @@ func _apply_perk(perk: Dictionary) -> void:
 			_dealer_target = t
 
 
+# Activates a boss rule for the current round. Saves prior _combos_disabled
+# state so we can restore it when the boss ends (otherwise a modifier like
+# Steady Hand that already disabled combos would get clobbered).
+func _apply_boss_rule(rule: String) -> void:
+	_boss_rule = rule
+	if rule == "no_combos":
+		_combos_saved_state = _combos_disabled
+		_combos_disabled = true
+
+
+func _clear_boss_rule() -> void:
+	var prior := _boss_rule
+	_boss_rule = ""
+	if prior == "no_combos":
+		_combos_disabled = _combos_saved_state
+
+
 func _apply_modifier(mod: Dictionary) -> void:
 	_active_combo_time = float(mod.get("combo_time", COMBO_TIME_MAX))
 	_active_combo_increment = COMBO_INCREMENT * float(mod.get("combo_increment_mult", 1.0))
@@ -855,7 +900,10 @@ func _refresh_dealer_hud() -> void:
 	var dealer_name: String = String(_dealer_target.get("name", "?"))
 	var dealer_score: int = int(_dealer_target.get("score", 0))
 	var dealer_color: Color = _dealer_target.get("color", Color(0.85, 0.55, 0.55))
-	dealer_info_label.text = "⚔ %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
+	if bool(_dealer_target.get("is_boss", false)):
+		dealer_info_label.text = "⚠ BOSS · %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
+	else:
+		dealer_info_label.text = "⚔ %s · %d to beat" % [dealer_name.to_upper(), dealer_score]
 	dealer_info_label.modulate = dealer_color
 	var left := _active_round_length - _round_placements
 	round_counter_label.text = "%d LEFT" % left
