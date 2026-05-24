@@ -53,6 +53,46 @@ const POOL := [
 		"description": "Next dealer's target -20%",
 		"color": Color(1.00, 0.70, 0.45),
 	},
+	{
+		"id": "big_spender", "name": "Big Spender",
+		"description": "+20% base score (stacks)",
+		"color": Color(1.00, 0.85, 0.40),
+	},
+	{
+		"id": "echo_combo", "name": "Echo Combo",
+		"description": "Surge cards grant +2 combo (was +1)",
+		"color": Color(0.85, 0.45, 1.00),
+	},
+	{
+		"id": "anchor_free", "name": "Anchor Free",
+		"description": "Anchors clear like normal cards",
+		"color": Color(0.65, 0.78, 0.92),
+	},
+	{
+		"id": "royal_treatment", "name": "Royal Treatment",
+		"description": "Face-card hands score +50%",
+		"color": Color(0.95, 0.78, 0.30),
+	},
+	{
+		"id": "wider_view", "name": "Wider View",
+		"description": "+1 visible preview slot",
+		"color": Color(0.55, 0.95, 0.75),
+	},
+	{
+		"id": "time_stretch", "name": "Time Stretch",
+		"description": "Combo timer pauses during cascades",
+		"color": Color(0.50, 0.95, 1.00),
+	},
+	{
+		"id": "xp_doubler", "name": "XP Multiplier",
+		"description": "Objectives give +50% XP",
+		"color": Color(0.95, 0.85, 0.45),
+	},
+	{
+		"id": "lucky_draw", "name": "Lucky Draw",
+		"description": "Next 5 cards are normal (no specials)",
+		"color": Color(0.75, 1.00, 0.75),
+	},
 ]
 
 

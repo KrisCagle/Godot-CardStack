@@ -112,6 +112,17 @@ var _modifier: Dictionary = {}
 # _process_cascades, _refresh_actions, and the combo path.
 var _boss_rule: String = ""
 var _combos_saved_state: bool = false  # restored when no_combos boss ends
+
+# Perk-driven run state. These accumulate across all picked perks; reset in
+# _start_new_game. Each one is read at a specific hook point.
+var _active_surge_combo_bonus: int = 1
+var _anchor_free: bool = false
+var _royal_treatment_bonus: float = 0.0
+var _preview_visible_bonus: int = 0
+var _time_stretch: bool = false
+var _in_cascade: bool = false
+var _xp_objective_mult: float = 1.0
+var _lucky_draw_remaining: int = 0
 var _active_combo_time: float = COMBO_TIME_MAX
 var _active_combo_increment: float = COMBO_INCREMENT
 var _active_round_length: int = ROUND_LENGTH
@@ -187,6 +198,14 @@ func _start_new_game() -> void:
 	_apply_modifier(_modifier)
 	_boss_rule = ""
 	_combos_saved_state = _combos_disabled
+	_active_surge_combo_bonus = 1
+	_anchor_free = false
+	_royal_treatment_bonus = 0.0
+	_preview_visible_bonus = 0
+	_time_stretch = false
+	_in_cascade = false
+	_xp_objective_mult = 1.0
+	_lucky_draw_remaining = 0
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -203,6 +222,9 @@ func _start_new_game() -> void:
 
 func _process(delta: float) -> void:
 	if _game_over:
+		return
+	# Time Stretch perk: pause combo timer while cascades are resolving.
+	if _time_stretch and _in_cascade:
 		return
 	if _combo_timer > 0.0:
 		_combo_timer = maxf(_combo_timer - delta, 0.0)
@@ -229,9 +251,9 @@ func _on_column_tapped(col: int) -> void:
 		return
 
 	_update_combo_state()
-	# Multi grants an extra combo step (only when combos are enabled by modifier).
+	# Surge grants extra combo steps (Echo Combo perk bumps this from +1 to +2).
 	if _current.is_surge and not _combos_disabled:
-		_combo += 1
+		_combo += _active_surge_combo_bonus
 		SaveData.update_max_stat("highest_combo", _combo)
 		_update_objective("max_combo", _combo)
 
@@ -286,6 +308,7 @@ func _animate_drop(card: Card, col: int, row: int) -> void:
 
 
 func _process_cascades() -> void:
+	_in_cascade = true
 	var cascade_tier := 0
 	var combo_mult := 1.0 + float(maxi(0, _combo - 1)) * _active_combo_increment
 	while true:
@@ -305,7 +328,10 @@ func _process_cascades() -> void:
 			var has_clearable := false
 			for cell in g.cells:
 				var pc: Card = playfield.card_at(cell.x, cell.y)
-				if pc != null and not pc.is_anchor:
+				if pc == null:
+					continue
+				# Anchor Free perk lets Anchor cells clear normally.
+				if not pc.is_anchor or _anchor_free:
 					has_clearable = true
 					break
 			if has_clearable:
@@ -326,17 +352,26 @@ func _process_cascades() -> void:
 
 		var all_cells: Array = []
 		for g in actionable:
-			# Glass: any Glass card in the hand triples the score (single 3×
+			# Flare: any Flare card in the hand triples the score (single 3×
 			# regardless of how many — avoids 9× / 27× cheese).
-			var has_glass: bool = false
+			var has_flare: bool = false
 			for cell in g.cells:
 				var p: Vector2i = cell
 				var gc: Card = playfield.card_at(p.x, p.y)
 				if gc != null and gc.is_flare:
-					has_glass = true
+					has_flare = true
 					break
-			var glass_mult: float = 3.0 if has_glass else 1.0
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * glass_mult))
+			var flare_mult: float = 3.0 if has_flare else 1.0
+			# Royal Treatment perk: face-card-containing hands get a bonus.
+			var royal_mult: float = 1.0
+			if _royal_treatment_bonus > 0.0:
+				for cell in g.cells:
+					var p2: Vector2i = cell
+					var rc: Card = playfield.card_at(p2.x, p2.y)
+					if rc != null and not rc.is_special and rc.rank >= Card.Rank.JACK:
+						royal_mult = 1.0 + _royal_treatment_bonus
+						break
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -381,11 +416,12 @@ func _process_cascades() -> void:
 			if seen.has(c):
 				continue
 			seen[c] = true
-			# Steel cells participate in scoring but never clear — leave them
-			# on the grid as permanent blockers.
+			# Anchor cells participate in scoring but never clear — leave them
+			# on the grid as permanent blockers. Unless Anchor Free perk says
+			# otherwise.
 			var p: Vector2i = c
 			var card_here: Card = playfield.card_at(p.x, p.y)
-			if card_here != null and card_here.is_anchor:
+			if card_here != null and card_here.is_anchor and not _anchor_free:
 				continue
 			unique_cells.append(c)
 
@@ -395,6 +431,7 @@ func _process_cascades() -> void:
 		await get_tree().create_timer(CLEAR_DELAY).timeout
 		playfield.apply_gravity()
 		await get_tree().create_timer(GRAVITY_DELAY).timeout
+	_in_cascade = false
 
 
 func _evaluate_round() -> void:
@@ -533,13 +570,16 @@ func _compute_tier(s: int) -> int:
 
 
 func _active_preview_count() -> int:
+	var base := 0
 	if _tier <= 2:
-		return 3
-	if _tier <= 4:
-		return 2
-	if _tier <= 6:
-		return 1
-	return 0
+		base = 3
+	elif _tier <= 4:
+		base = 2
+	elif _tier <= 6:
+		base = 1
+	# Wider View perk bumps the visible preview count; cap at the underlying
+	# queue size so we don't index out of range.
+	return clampi(base + _preview_visible_bonus, 0, PREVIEW_SIZE)
 
 
 func _advance_queue() -> void:
@@ -972,6 +1012,22 @@ func _apply_perk(perk: Dictionary) -> void:
 			var t: Dictionary = _dealer_target.duplicate(true)
 			t["score"] = int(round(float(t.get("score", 0)) * 0.8))
 			_dealer_target = t
+		"big_spender":
+			_active_base_mult *= 1.20
+		"echo_combo":
+			_active_surge_combo_bonus = 2
+		"anchor_free":
+			_anchor_free = true
+		"royal_treatment":
+			_royal_treatment_bonus = 0.5
+		"wider_view":
+			_preview_visible_bonus += 1
+		"time_stretch":
+			_time_stretch = true
+		"xp_doubler":
+			_xp_objective_mult = 1.5
+		"lucky_draw":
+			_lucky_draw_remaining = 5
 
 
 # Activates a boss rule for the current round. Saves prior _combos_disabled
@@ -1004,7 +1060,8 @@ func _apply_modifier(mod: Dictionary) -> void:
 
 
 func _on_objective_complete(obj: Dictionary) -> void:
-	var xp_reward: int = int(obj.xp)
+	# XP Multiplier perk: bump objective XP rewards.
+	var xp_reward: int = int(round(float(obj.xp) * _xp_objective_mult))
 	SaveData.add_xp(xp_reward)
 	_objective_xp_earned += xp_reward
 	print("[obj] complete: %s (+%d XP)" % [obj.name, xp_reward])
