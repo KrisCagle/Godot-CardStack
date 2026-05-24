@@ -292,6 +292,28 @@ func _process_cascades() -> void:
 		var groups: Array = playfield.find_scoring_groups()
 		if groups.is_empty():
 			break
+
+		# Upstream filter: drop groups that wouldn't actually clear anything
+		# (all-Anchor cells), and drop row groups when the boss rule says so.
+		# Without this, a pair-of-Anchors loops forever — same group keeps
+		# returning, cascade_tier keeps incrementing, sound + Avalanche
+		# achievement keep firing.
+		var actionable: Array = []
+		for g in groups:
+			if _boss_rule == "no_rows" and String(g.get("axis", "")) == "row":
+				continue
+			var has_clearable := false
+			for cell in g.cells:
+				var pc: Card = playfield.card_at(cell.x, cell.y)
+				if pc != null and not pc.is_anchor:
+					has_clearable = true
+					break
+			if has_clearable:
+				actionable.append(g)
+
+		if actionable.is_empty():
+			break
+
 		cascade_tier += 1
 		Sfx.play("clear")
 		SaveData.update_max_stat("highest_cascade_tier", cascade_tier)
@@ -303,10 +325,7 @@ func _process_cascades() -> void:
 			_shake(7.0, 0.18)
 
 		var all_cells: Array = []
-		for g in groups:
-			# Boss: The Sharp — rows don't score or clear this round.
-			if _boss_rule == "no_rows" and String(g.get("axis", "")) == "row":
-				continue
+		for g in actionable:
 			# Glass: any Glass card in the hand triples the score (single 3×
 			# regardless of how many — avoids 9× / 27× cheese).
 			var has_glass: bool = false
