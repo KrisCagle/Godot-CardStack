@@ -219,6 +219,9 @@ func _on_column_tapped(col: int) -> void:
 	if _current.is_sweep:
 		await _drop_sweep(col)
 		return
+	if _current.is_shuffle:
+		await _drop_shuffle(col)
+		return
 
 	var target_row: int = playfield.lowest_empty_row(col)
 	if target_row < 0:
@@ -238,6 +241,8 @@ func _on_column_tapped(col: int) -> void:
 	Sfx.play("place")
 	playfield.place_card(placed, col)
 	_apply_placement_bonuses(col, target_row, placed)
+	if placed.is_promote:
+		_apply_promote_effect(col, target_row)
 	_on_placement_recorded(placed)
 	await _process_cascades()
 	_check_tier_up()
@@ -302,7 +307,17 @@ func _process_cascades() -> void:
 			# Boss: The Sharp — rows don't score or clear this round.
 			if _boss_rule == "no_rows" and String(g.get("axis", "")) == "row":
 				continue
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult))
+			# Glass: any Glass card in the hand triples the score (single 3×
+			# regardless of how many — avoids 9× / 27× cheese).
+			var has_glass: bool = false
+			for cell in g.cells:
+				var p: Vector2i = cell
+				var gc: Card = playfield.card_at(p.x, p.y)
+				if gc != null and gc.is_glass:
+					has_glass = true
+					break
+			var glass_mult: float = 3.0 if has_glass else 1.0
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * glass_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -344,9 +359,16 @@ func _process_cascades() -> void:
 		var seen: Dictionary = {}
 		var unique_cells: Array = []
 		for c in all_cells:
-			if not seen.has(c):
-				seen[c] = true
-				unique_cells.append(c)
+			if seen.has(c):
+				continue
+			seen[c] = true
+			# Steel cells participate in scoring but never clear — leave them
+			# on the grid as permanent blockers.
+			var p: Vector2i = c
+			var card_here: Card = playfield.card_at(p.x, p.y)
+			if card_here != null and card_here.is_steel:
+				continue
+			unique_cells.append(c)
 
 		await get_tree().create_timer(0.18).timeout
 		_spawn_clear_particles(unique_cells)
@@ -514,18 +536,27 @@ func _draw_card_with_specials() -> Card:
 	# deterministic too — without this, two players on the same daily seed
 	# could see different Joker/Bomb positions.
 	if _specials_rng.randf() < chance:
-		# Joker share comes off the top; remaining specials (Bomb / Sweep /
-		# Multi) split the rest in equal thirds so the joker_ratio modifier
-		# still does its job cleanly.
+		# Joker share comes off the top; remaining 7 specials (Bomb / Sweep /
+		# Multi / Steel / Glass / Promote / Shuffle) split the rest in equal
+		# sevenths so the joker_ratio modifier still controls the Joker share.
 		if _specials_rng.randf() < _active_joker_ratio:
 			return Card.make_joker()
-		var roll := _specials_rng.randf()
-		if roll < 0.34:
-			return Card.make_bomb()
-		elif roll < 0.67:
-			return Card.make_sweep()
-		else:
-			return Card.make_multi(_specials_rng)
+		var roll: int = _specials_rng.randi() % 7
+		match roll:
+			0:
+				return Card.make_bomb()
+			1:
+				return Card.make_sweep()
+			2:
+				return Card.make_multi(_specials_rng)
+			3:
+				return Card.make_steel(_specials_rng)
+			4:
+				return Card.make_glass(_specials_rng)
+			5:
+				return Card.make_promote(_specials_rng)
+			_:
+				return Card.make_shuffle()
 	return _deck.draw_card()
 
 
@@ -602,6 +633,89 @@ func _drop_sweep(col: int) -> void:
 	await get_tree().create_timer(CLEAR_DELAY).timeout
 	playfield.apply_gravity()
 	await get_tree().create_timer(GRAVITY_DELAY).timeout
+	await _process_cascades()
+	_check_tier_up()
+
+	if playfield.is_any_column_full():
+		_end_run("column_overflow")
+		return
+
+	_round_placements += 1
+	if _round_placements >= _active_round_length:
+		await _evaluate_round()
+		if _game_over:
+			return
+
+	_advance_queue()
+	_combo_timer = _active_combo_time
+	_refresh()
+	_is_animating = false
+
+
+# Promote effect: bump all 4-neighbor non-special cards by +1 rank, capped
+# at Ace. Fires a small popup showing how many cards got bumped.
+func _apply_promote_effect(col: int, row: int) -> void:
+	var neighbors := [
+		Vector2i(col - 1, row),
+		Vector2i(col + 1, row),
+		Vector2i(col, row - 1),
+		Vector2i(col, row + 1),
+	]
+	var promoted := 0
+	for n in neighbors:
+		var c: Card = playfield.card_at(n.x, n.y)
+		if c == null or c.is_special:
+			continue
+		if c.rank >= Card.Rank.ACE:
+			continue
+		c.rank += 1
+		promoted += 1
+	if promoted > 0:
+		playfield.queue_redraw()
+		var rect: Rect2 = playfield.cell_local_rect(col, row)
+		var center: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+		_spawn_mini_popup("↑ %d" % promoted, center, Color(1.00, 0.85, 0.40))
+
+
+# Shuffle special: consumed on placement (doesn't enter the grid). Gathers
+# every card on the grid, shuffles them, and re-places into random columns
+# bottom-up. Steel cards get shuffled too — Steel only resists CLEAR, not
+# rearrangement.
+func _drop_shuffle(col: int) -> void:
+	_is_animating = true
+	var shuffle_card := _current
+
+	_update_combo_state()
+
+	var visual_row: int = playfield.lowest_empty_row(col)
+	if visual_row < 0:
+		visual_row = 0
+	await _animate_drop(shuffle_card, col, visual_row)
+
+	var all_cards: Array = []
+	for x in PlayField.GRID_WIDTH:
+		for y in PlayField.GRID_HEIGHT:
+			var c: Card = playfield.card_at(x, y)
+			if c != null:
+				all_cards.append(c)
+	all_cards.shuffle()
+
+	playfield.reset()
+	for c in all_cards:
+		var attempts := 0
+		while attempts < 20:
+			var col_pick: int = randi() % PlayField.GRID_WIDTH
+			var row_pick: int = playfield.lowest_empty_row(col_pick)
+			if row_pick >= 0:
+				playfield.place_card(c, col_pick)
+				break
+			attempts += 1
+
+	Sfx.play("clear")
+	_spawn_dealer_popup("SHUFFLE!", Color(0.85, 0.55, 1.00))
+	_shake(10.0, 0.30)
+	_on_placement_recorded(shuffle_card)
+	await get_tree().create_timer(CLEAR_DELAY).timeout
 	await _process_cascades()
 	_check_tier_up()
 
