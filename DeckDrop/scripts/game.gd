@@ -132,6 +132,10 @@ var _combo_shield: bool = false
 var _combo_reached_2_this_run: bool = false
 var _action_surge: bool = false
 var _bomb_score_bonus: int = 0
+
+# Bonus cards: track Card refs that still have their "first hand 2×" pending.
+# Cleared as soon as any hand the card participates in scores.
+var _bonus_cards: Dictionary = {}
 var _active_combo_time: float = COMBO_TIME_MAX
 var _active_combo_increment: float = COMBO_INCREMENT
 var _active_round_length: int = ROUND_LENGTH
@@ -223,6 +227,7 @@ func _start_new_game() -> void:
 	_combo_reached_2_this_run = false
 	_action_surge = false
 	_bomb_score_bonus = 0
+	_bonus_cards = {}
 	if _score_tween != null and _score_tween.is_valid():
 		_score_tween.kill()
 	_preview.clear()
@@ -261,6 +266,12 @@ func _on_column_tapped(col: int) -> void:
 	if _current.is_shuffle:
 		await _drop_shuffle(col)
 		return
+	if _current.is_mirror:
+		await _drop_mirror(col)
+		return
+	if _current.is_burst:
+		await _drop_burst(col)
+		return
 
 	var target_row: int = playfield.lowest_empty_row(col)
 	if target_row < 0:
@@ -279,6 +290,9 @@ func _on_column_tapped(col: int) -> void:
 	await _animate_drop(placed, col, target_row)
 	Sfx.play("place")
 	playfield.place_card(placed, col)
+	# Bonus cards: track the placed Card ref so the next hand it's in scores 2×.
+	if placed.is_bonus:
+		_bonus_cards[placed] = true
 	_apply_placement_bonuses(col, target_row, placed)
 	if placed.is_crown:
 		_apply_crown_effect(col, target_row)
@@ -404,7 +418,17 @@ func _process_cascades() -> void:
 			if _double_down_pending:
 				double_mult = 2.0
 				_double_down_pending = false
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult))
+			# Bonus card: if any cell in this hand is a tracked Bonus, score 2×
+			# and clear that bonus state (one-shot).
+			var bonus_mult: float = 1.0
+			for cell in g.cells:
+				var p4: Vector2i = cell
+				var bc: Card = playfield.card_at(p4.x, p4.y)
+				if bc != null and _bonus_cards.get(bc, false):
+					bonus_mult = 2.0
+					_bonus_cards.erase(bc)
+					break
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -645,12 +669,13 @@ func _draw_card_with_specials() -> Card:
 	# deterministic too — without this, two players on the same daily seed
 	# could see different Joker/Bomb positions.
 	if _specials_rng.randf() < chance:
-		# Joker share comes off the top; remaining 7 specials (Bomb / Sweep /
-		# Multi / Steel / Glass / Promote / Shuffle) split the rest in equal
-		# sevenths so the joker_ratio modifier still controls the Joker share.
+		# Joker share comes off the top; the remaining 10 specials (Bomb /
+		# Sweep / Surge / Anchor / Flare / Crown / Shuffle / Mirror / Burst /
+		# Bonus) split the rest in equal tenths so the joker_ratio modifier
+		# still controls the Joker share.
 		if _specials_rng.randf() < _active_joker_ratio:
 			return Card.make_joker()
-		var roll: int = _specials_rng.randi() % 7
+		var roll: int = _specials_rng.randi() % 10
 		match roll:
 			0:
 				return Card.make_bomb()
@@ -664,8 +689,14 @@ func _draw_card_with_specials() -> Card:
 				return Card.make_flare(_specials_rng)
 			5:
 				return Card.make_crown(_specials_rng)
-			_:
+			6:
 				return Card.make_shuffle()
+			7:
+				return Card.make_mirror(_specials_rng)
+			8:
+				return Card.make_burst(_specials_rng)
+			_:
+				return Card.make_bonus(_specials_rng)
 	return _deck.draw_card()
 
 
@@ -829,6 +860,132 @@ func _drop_shuffle(col: int) -> void:
 	_shake(10.0, 0.30)
 	_on_placement_recorded(shuffle_card)
 	await get_tree().create_timer(CLEAR_DELAY).timeout
+	await _process_cascades()
+	_check_tier_up()
+
+	if playfield.is_any_column_full():
+		_end_run("column_overflow")
+		return
+
+	_round_placements += 1
+	if _round_placements >= _active_round_length:
+		await _evaluate_round()
+		if _game_over:
+			return
+
+	_advance_queue()
+	_combo_timer = _active_combo_time
+	_refresh()
+	_is_animating = false
+
+
+# Mirror special: places a copy of itself (rank + suit) in the tapped column
+# AND its mirror column (GRID_WIDTH-1-col). The Mirror card itself is consumed
+# and the two copies behave as normal cards.
+func _drop_mirror(col: int) -> void:
+	_is_animating = true
+	var mirror := _current
+	_update_combo_state()
+
+	var target_row: int = playfield.lowest_empty_row(col)
+	var mirror_col: int = PlayField.GRID_WIDTH - 1 - col
+	var mirror_row: int = -1
+	if mirror_col != col:
+		mirror_row = playfield.lowest_empty_row(mirror_col)
+
+	if target_row < 0 and mirror_row < 0:
+		# Nowhere to land; consume harmlessly.
+		_is_animating = false
+		_advance_queue()
+		_refresh()
+		return
+
+	var anim_row := target_row if target_row >= 0 else mirror_row
+	var anim_col := col if target_row >= 0 else mirror_col
+	await _animate_drop(mirror, anim_col, anim_row)
+	Sfx.play("place")
+
+	if target_row >= 0:
+		var primary := Card.new(mirror.suit, mirror.rank)
+		playfield.place_card(primary, col)
+		_apply_placement_bonuses(col, target_row, primary)
+	if mirror_col != col and mirror_row >= 0:
+		var twin := Card.new(mirror.suit, mirror.rank)
+		playfield.place_card(twin, mirror_col)
+		_apply_placement_bonuses(mirror_col, mirror_row, twin)
+
+	_spawn_dealer_popup("MIRROR!", Color(0.55, 0.85, 1.00))
+	_on_placement_recorded(mirror)
+	await _process_cascades()
+	_check_tier_up()
+
+	if playfield.is_any_column_full():
+		_end_run("column_overflow")
+		return
+
+	_round_placements += 1
+	if _round_placements >= _active_round_length:
+		await _evaluate_round()
+		if _game_over:
+			return
+
+	_advance_queue()
+	_combo_timer = _active_combo_time
+	_refresh()
+	_is_animating = false
+
+
+# Burst special: real card that, on placement, clears the 3×3 of cells around
+# its landing cell (the burst card itself stays — it's a real card).
+func _drop_burst(col: int) -> void:
+	_is_animating = true
+	var burst := _current
+	_update_combo_state()
+
+	var target_row: int = playfield.lowest_empty_row(col)
+	if target_row < 0:
+		# Column full — consume harmlessly.
+		_is_animating = false
+		_advance_queue()
+		_refresh()
+		return
+
+	await _animate_drop(burst, col, target_row)
+	Sfx.play("place")
+	var burst_real := Card.new(burst.suit, burst.rank)
+	playfield.place_card(burst_real, col)
+	_apply_placement_bonuses(col, target_row, burst_real)
+
+	# Clear 3×3 of cells around the burst, excluding itself.
+	var cells_to_clear: Array = []
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			if dx == 0 and dy == 0:
+				continue
+			var x: int = col + dx
+			var y: int = target_row + dy
+			if x < 0 or x >= PlayField.GRID_WIDTH:
+				continue
+			if y < 0 or y >= PlayField.GRID_HEIGHT:
+				continue
+			var neighbor: Card = playfield.card_at(x, y)
+			if neighbor == null:
+				continue
+			# Respect Anchors (unless the Anchor Free perk says otherwise).
+			if neighbor.is_anchor and not _anchor_free:
+				continue
+			cells_to_clear.append(Vector2i(x, y))
+
+	if not cells_to_clear.is_empty():
+		_spawn_clear_particles(cells_to_clear)
+		playfield.clear_cells(cells_to_clear)
+	Sfx.play("boom")
+	_spawn_dealer_popup("BURST!", Color(1.00, 0.65, 0.30))
+	_shake(14.0, 0.30)
+	_on_placement_recorded(burst)
+	await get_tree().create_timer(CLEAR_DELAY).timeout
+	playfield.apply_gravity()
+	await get_tree().create_timer(GRAVITY_DELAY).timeout
 	await _process_cascades()
 	_check_tier_up()
 

@@ -10,7 +10,7 @@ extends RefCounted
 
 enum Suit { CLUBS, DIAMONDS, HEARTS, SPADES }
 enum Rank { TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE }
-enum Kind { NORMAL, JOKER, BOMB, SWEEP, SURGE, ANCHOR, FLARE, CROWN, SHUFFLE }
+enum Kind { NORMAL, JOKER, BOMB, SWEEP, SURGE, ANCHOR, FLARE, CROWN, SHUFFLE, MIRROR, BURST, BONUS }
 
 const RANK_LABELS := ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 const SUIT_LABELS := ["♣", "♦", "♥", "♠"]
@@ -50,6 +50,18 @@ var is_crown: bool:
 var is_shuffle: bool:
 	get:
 		return kind == Kind.SHUFFLE
+
+var is_mirror: bool:
+	get:
+		return kind == Kind.MIRROR
+
+var is_burst: bool:
+	get:
+		return kind == Kind.BURST
+
+var is_bonus: bool:
+	get:
+		return kind == Kind.BONUS
 
 var is_special: bool:
 	get:
@@ -99,6 +111,25 @@ static func make_crown(rng: RandomNumberGenerator = null) -> Card:
 # currently on the grid into random columns.
 static func make_shuffle() -> Card:
 	return Card.new(0, 0, Kind.SHUFFLE)
+
+
+# Mirror: real card; on placement places a copy of itself in the tapped
+# column AND its mirror column (col → GRID_WIDTH-1-col). Both copies behave
+# as normal cards after placement.
+static func make_mirror(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.MIRROR, rng)
+
+
+# Burst: real card; on placement clears the 3×3 of cells immediately around
+# its landing cell (excluding itself).
+static func make_burst(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.BURST, rng)
+
+
+# Bonus: real card; the FIRST scoring hand it participates in is scored at 2×.
+# After that bonus is consumed, it behaves as a normal card.
+static func make_bonus(rng: RandomNumberGenerator = null) -> Card:
+	return _make_random_kind(Kind.BONUS, rng)
 
 
 static func _make_random_kind(k: int, rng: RandomNumberGenerator) -> Card:

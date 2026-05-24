@@ -53,23 +53,52 @@ static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
 		face_color = Color(0.96, 0.88, 1.00)
 		border_color = Color(0.75, 0.45, 1.00)
 	elif card.is_surge:
-		# Real card face + thick purple border so player sees the rank
-		# and immediately reads "this is enhanced."
 		border_color = Color(0.85, 0.45, 1.00)
 		border_width = 4.0
 	elif card.is_anchor:
-		# Gray steel border — this card never clears.
 		border_color = Color(0.55, 0.58, 0.65)
 		border_width = 5.0
 	elif card.is_flare:
-		# Cyan glass border — fragile but triples hand score.
 		border_color = Color(0.40, 0.85, 1.00)
 		border_width = 4.0
 	elif card.is_crown:
-		# Gold promote border — bumps neighbors on placement.
 		border_color = Color(0.95, 0.78, 0.30)
 		border_width = 4.0
+	elif card.is_mirror:
+		border_color = Color(0.55, 0.85, 1.00)
+		border_width = 4.0
+	elif card.is_burst:
+		border_color = Color(1.00, 0.65, 0.30)
+		border_width = 4.0
+	elif card.is_bonus:
+		border_color = Color(1.00, 0.40, 0.70)
+		border_width = 4.0
+
+	# Face fill.
 	canvas.draw_rect(rect, face_color, true)
+
+	# Real-card polish: a suit-colored stripe across the top and a subtle
+	# darkening across the bottom half so cards read with depth instead of
+	# looking like flat rectangles. Skip for symbol-mode specials (Joker /
+	# Bomb / Sweep / Shuffle) which have their own visual treatment.
+	var is_symbol_card: bool = card.is_joker or card.is_bomb \
+		or card.is_sweep or card.is_shuffle
+	if not is_symbol_card:
+		var stripe_pad_x: float = rect.size.x * 0.10
+		var stripe_h: float = maxf(rect.size.y * 0.05, 3.0)
+		var stripe := Rect2(
+			rect.position + Vector2(stripe_pad_x, rect.size.y * 0.03),
+			Vector2(rect.size.x - stripe_pad_x * 2, stripe_h)
+		)
+		canvas.draw_rect(stripe, card.suit_color(), true)
+
+		var darken := Rect2(
+			rect.position + Vector2(0, rect.size.y * 0.55),
+			Vector2(rect.size.x, rect.size.y * 0.45)
+		)
+		canvas.draw_rect(darken, Color(0, 0, 0, 0.05), true)
+
+	# Border last so it sits on top of the stripe + darken pass.
 	canvas.draw_rect(rect, border_color, false, border_width)
 
 	var font := canvas.get_theme_default_font()
@@ -79,15 +108,15 @@ static func draw_card(canvas: Control, card: Card, rect: Rect2) -> void:
 
 	var rank_font_size := int(rect.size.y * 0.30)
 	var suit_font_size := int(rect.size.y * 0.22)
-	var center_font_size := int(rect.size.y * 0.55)
+	var center_font_size := int(rect.size.y * 0.62)  # larger center suit for presence
 	var pad := rect.size.y * 0.08
 
 	canvas.draw_string(font,
-		rect.position + Vector2(pad, pad + rank_font_size * 0.85),
+		rect.position + Vector2(pad, pad + rank_font_size * 0.92),
 		rank_text, HORIZONTAL_ALIGNMENT_LEFT, -1, rank_font_size, fg)
 	canvas.draw_string(font,
 		rect.position + Vector2(pad, pad + rank_font_size + suit_font_size * 0.95),
 		suit_text, HORIZONTAL_ALIGNMENT_LEFT, -1, suit_font_size, fg)
 	canvas.draw_string(font,
-		rect.position + Vector2(0, rect.size.y * 0.84),
+		rect.position + Vector2(0, rect.size.y * 0.88),
 		suit_text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, center_font_size, fg)
