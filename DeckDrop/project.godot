@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 SaveData="*res://scripts/save_data.gd"
 Sfx="*res://scripts/sfx.gd"
 MatchState="*res://scripts/match_state.gd"
+FontLoader="*res://scripts/font_loader.gd"
 
 [display]
 

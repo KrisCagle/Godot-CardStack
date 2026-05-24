@@ -316,12 +316,13 @@ func _init_grid() -> void:
 
 
 func _process(delta: float) -> void:
-	if _flash_t <= 0.0:
-		return
-	_flash_t = maxf(_flash_t - delta, 0.0)
+	# Always redraw — the anticipation-glow outlines pulse via Time.
+	# Cheap: we're drawing ~40 cells of simple rects per frame.
 	queue_redraw()
-	if _flash_t == 0.0:
-		_flash_col = -1
+	if _flash_t > 0.0:
+		_flash_t = maxf(_flash_t - delta, 0.0)
+		if _flash_t == 0.0:
+			_flash_col = -1
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -368,6 +369,16 @@ func _draw() -> void:
 				CardView.draw_empty_slot(self, rect)
 			else:
 				CardView.draw_card(self, card, rect)
+
+	# Anticipation glow: faint pulsing gold outline on each column's drop
+	# target so the player sees where their card will land before tapping.
+	var pulse: float = 0.18 + 0.10 * sin(float(Time.get_ticks_msec()) * 0.003)
+	for x in GRID_WIDTH:
+		var drop_row := lowest_empty_row(x)
+		if drop_row < 0:
+			continue
+		var aim_rect := cell_local_rect(x, drop_row)
+		draw_rect(aim_rect, Color(1.0, 0.85, 0.40, pulse), false, 3.0)
 
 	if _flash_col >= 0 and _flash_t > 0.0:
 		var cell_w := size.x / float(GRID_WIDTH)

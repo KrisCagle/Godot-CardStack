@@ -326,8 +326,15 @@ horizontal_alignment = 1
 theme_override_font_sizes/font_size = 96
 
 [node name="Spacer1" type="Control" parent="GameOverPanel/Panel/VBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
+
+[node name="ReceiptHeader" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.78, 0.62, 0.30, 1)
+text = "— P A Y O U T —"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
 
 [node name="ScoreLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
 layout_mode = 2
@@ -351,9 +358,17 @@ horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 36
 
-[node name="Spacer2" type="Control" parent="GameOverPanel/Panel/VBox"]
-custom_minimum_size = Vector2(0, 30)
+[node name="Divider1" type="HSeparator" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="BonusHeader" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.78, 0.62, 0.30, 1)
+text = "— B O N U S —"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
 
 [node name="XpLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
 layout_mode = 2
@@ -368,6 +383,11 @@ modulate = Color(0.7, 0.75, 0.88, 1)
 text = ""
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 36
+
+[node name="Divider2" type="HSeparator" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_override_constants/separation = 18
 
 [node name="Spacer3" type="Control" parent="GameOverPanel/Panel/VBox"]
 custom_minimum_size = Vector2(0, 60)
