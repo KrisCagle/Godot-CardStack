@@ -30,6 +30,16 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 200.0
 
+[node name="HudBg" type="Panel" parent="HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+
 [node name="TierLabel" type="Label" parent="HUD"]
 layout_mode = 1
 offset_left = 36.0
@@ -68,12 +78,13 @@ theme_override_font_sizes/font_size = 32
 layout_mode = 1
 offset_left = 36.0
 offset_top = 115.0
-offset_right = 700.0
+offset_right = 760.0
 offset_bottom = 160.0
 modulate = Color(0.85, 0.55, 0.55, 1)
 text = "DEALER: Pair · 100"
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 34
+clip_text = true
+theme_override_font_sizes/font_size = 32
 
 [node name="RoundCounterLabel" type="Label" parent="HUD"]
 layout_mode = 1
@@ -209,6 +220,59 @@ offset_right = 148.0
 offset_bottom = 170.0
 script = ExtResource("3_cardview")
 
+[node name="DiscardButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 12.0
+offset_right = -30.0
+offset_bottom = 76.0
+text = "DISCARD ×3"
+theme_override_font_sizes/font_size = 26
+
+[node name="WagerButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 84.0
+offset_right = -30.0
+offset_bottom = 148.0
+text = "BANK  0"
+modulate = Color(1.0, 0.92, 0.55, 1.0)
+theme_override_font_sizes/font_size = 26
+
+[node name="HoldButton" type="Button" parent="BottomArea"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 156.0
+offset_right = -30.0
+offset_bottom = 220.0
+text = "HOLD ×3"
+theme_override_font_sizes/font_size = 26
+
+[node name="ObjectivesContainer" type="VBoxContainer" parent="BottomArea"]
+layout_mode = 1
+offset_left = 20.0
+offset_top = 10.0
+offset_right = 280.0
+offset_bottom = 215.0
+theme_override_constants/separation = 4
+
+[node name="ObjectivesTitle" type="Label" parent="BottomArea/ObjectivesContainer"]
+layout_mode = 2
+modulate = Color(0.55, 0.62, 0.78, 1)
+text = "OBJECTIVES"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+
+[node name="ObjectivesVBox" type="VBoxContainer" parent="BottomArea/ObjectivesContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
 [node name="AdPlaceholder" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 12
@@ -274,8 +338,15 @@ horizontal_alignment = 1
 theme_override_font_sizes/font_size = 96
 
 [node name="Spacer1" type="Control" parent="GameOverPanel/Panel/VBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
+
+[node name="ReceiptHeader" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.78, 0.62, 0.30, 1)
+text = "— P A Y O U T —"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
 
 [node name="ScoreLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
 layout_mode = 2
@@ -296,17 +367,27 @@ layout_mode = 2
 modulate = Color(0.7, 0.78, 0.92, 1)
 text = ""
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 40
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 36
 
-[node name="Spacer2" type="Control" parent="GameOverPanel/Panel/VBox"]
-custom_minimum_size = Vector2(0, 30)
+[node name="Divider1" type="HSeparator" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="BonusHeader" type="Label" parent="GameOverPanel/Panel/VBox"]
+layout_mode = 2
+modulate = Color(0.78, 0.62, 0.30, 1)
+text = "— B O N U S —"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
 
 [node name="XpLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
 layout_mode = 2
 text = "+0 XP"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 60
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 52
 
 [node name="LevelLabel" type="Label" parent="GameOverPanel/Panel/VBox"]
 layout_mode = 2
@@ -314,6 +395,11 @@ modulate = Color(0.7, 0.75, 0.88, 1)
 text = ""
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 36
+
+[node name="Divider2" type="HSeparator" parent="GameOverPanel/Panel/VBox"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_override_constants/separation = 18
 
 [node name="Spacer3" type="Control" parent="GameOverPanel/Panel/VBox"]
 custom_minimum_size = Vector2(0, 60)

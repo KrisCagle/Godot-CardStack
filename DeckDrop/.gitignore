@@ -3,6 +3,9 @@
 
 # Build / export output
 build/
+builds/
+*.aab
+*.apk
 *.tmp
 *~
 
@@ -11,3 +14,15 @@ build/
 
 # Imported translations (auto-generated from CSV)
 *.translation
+
+# Android: the custom build template Godot installs into android/build/
+# is generated locally and very large — don't commit it. Run "Project →
+# Install Android Build Template" in the editor on any fresh checkout.
+android/build/
+
+# Signing keys MUST NEVER land in the repo. Keep your *.keystore /
+# *.jks files outside the project tree (e.g. ~/keystores/) and pass the
+# path via environment variables when exporting.
+*.keystore
+*.jks
+keystore.properties

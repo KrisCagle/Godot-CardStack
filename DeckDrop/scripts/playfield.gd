@@ -10,7 +10,7 @@ extends Control
 
 const GRID_WIDTH := 5
 const GRID_HEIGHT := 8
-const COL_WINDOW := 5  # Score the bottom N cards of any column when filled.
+const COL_WINDOW := 5  # Length of a column scoring window.
 const CELL_PAD := 6.0
 
 const COLOR_FLASH := Color(0.45, 0.65, 1.0, 1.0)
@@ -23,6 +23,10 @@ var grid: Array = []
 
 var _flash_col: int = -1
 var _flash_t: float = 0.0
+
+# game.gd sets this to highlight the current round's target column. -1 = no
+# target (e.g., game over, between rounds). Drawn as a faint gold tint.
+var target_col: int = -1
 
 
 func _ready() -> void:
@@ -41,6 +45,30 @@ func lowest_empty_row(col: int) -> int:
 		return -1
 	for y in range(GRID_HEIGHT - 1, -1, -1):
 		if grid[col][y] == null:
+			return y
+	return -1
+
+
+# How many cards are currently in this column. Drives Hot Stack scoring
+# bonuses and the warning glow at 6+/7+.
+func column_height(col: int) -> int:
+	if col < 0 or col >= GRID_WIDTH:
+		return 0
+	var n: int = 0
+	for y in GRID_HEIGHT:
+		if grid[col][y] != null:
+			n += 1
+	return n
+
+
+# Returns the grid row of the lowest filled cell in the column, or -1 if
+# the column is empty. Used by the "stuck stack" mercy clear to nuke the
+# very bottom card of an overflowing column when no hand can fire.
+func lowest_filled_row(col: int) -> int:
+	if col < 0 or col >= GRID_WIDTH:
+		return -1
+	for y in range(GRID_HEIGHT - 1, -1, -1):
+		if grid[col][y] != null:
 			return y
 	return -1
 
@@ -117,32 +145,17 @@ func find_scoring_groups() -> Array:
 			"axis": "row",
 		})
 
-	var start_y := GRID_HEIGHT - COL_WINDOW
+	# Columns: pick the BEST 5-card subset out of all the cards currently in
+	# the column, not just contiguous windows. This is the key fix for
+	# "the column has a pair but nothing fires" on tall stacks — a pair
+	# whose two cards sit far apart in the column (say row 0 and row 6)
+	# isn't inside any 5-card window, so the old contiguous-window scan
+	# missed it. Now we evaluate every 5-of-N combination and pick the
+	# single highest scorer per column.
 	for x in GRID_WIDTH:
-		var col_cards: Array = []
-		var complete := true
-		for y in range(start_y, GRID_HEIGHT):
-			var c: Card = grid[x][y]
-			if c == null:
-				complete = false
-				break
-			col_cards.append(c)
-		if not complete:
-			continue
-		var result: Dictionary = HandEvaluator.evaluate(col_cards)
-		if int(result.score) <= 0:
-			continue
-		var cells: Array = []
-		for i in _clearing_indices(col_cards, int(result.rank)):
-			cells.append(Vector2i(x, start_y + i))
-		groups.append({
-			"cells": cells,
-			"name": result.name,
-			"score": int(result.score),
-			"rank": int(result.rank),
-			"multiplier": int(result.multiplier),
-			"axis": "column",
-		})
+		var best: Dictionary = _best_column_subset(x)
+		if not best.is_empty():
+			groups.append(best)
 
 	# Diagonals (down-right: \)
 	for y_start in range(GRID_HEIGHT - 4):
@@ -237,6 +250,79 @@ static func _indices_with_rank_count(cards: Array, target_count: int) -> Array:
 	return result
 
 
+# Public wrapper so game.gd can ask "is there any hand on this column?"
+# without having to know about the internal subset machinery (used by the
+# stuck-stack mercy clear).
+func column_subset_for_test(col: int) -> Dictionary:
+	return _best_column_subset(col)
+
+
+# Best 5-of-N column subset.
+#
+# Why not "scan every 5-card window": a Connect 4–style tall column can hold
+# up to 8 cards. A Pair whose two members sit at e.g. row 0 and row 7 is
+# not contained in any contiguous 5-card window, so contiguous-window
+# scanning would never detect the hand — the player sees an obvious pair
+# in the column but nothing fires. We avoid that by evaluating every 5-card
+# combination of the column's present cards and emitting the single highest-
+# scoring one. The matched cells get the standard `_clearing_indices` rule
+# (kickers stay for pair/trips/quads, full sweep for straight/flush/+).
+#
+# Cost: at most C(8,5)=56 evaluations per column per cascade tier — cheap.
+func _best_column_subset(x: int) -> Dictionary:
+	# Collect (row, card) pairs for every filled cell in the column.
+	var rows: Array = []   # grid-row index for each entry
+	var cards: Array = []  # the Card at that row
+	for y in GRID_HEIGHT:
+		var c: Card = grid[x][y]
+		if c != null:
+			rows.append(y)
+			cards.append(c)
+	var n: int = cards.size()
+	if n < COL_WINDOW:
+		return {}
+
+	var best_result: Dictionary = {}
+	var best_idxs: Array = []
+
+	# Enumerate 5-of-N combinations. N ≤ 8 so this is tiny.
+	for i0 in range(0, n - 4):
+		for i1 in range(i0 + 1, n - 3):
+			for i2 in range(i1 + 1, n - 2):
+				for i3 in range(i2 + 1, n - 1):
+					for i4 in range(i3 + 1, n):
+						var subset := [cards[i0], cards[i1], cards[i2], cards[i3], cards[i4]]
+						var result: Dictionary = HandEvaluator.evaluate(subset)
+						if int(result.score) <= 0:
+							continue
+						if best_result.is_empty() \
+							or int(result.score) > int(best_result.get("score", 0)):
+							best_result = result
+							best_idxs = [i0, i1, i2, i3, i4]
+
+	if best_result.is_empty():
+		return {}
+
+	# Map clearing indices (0..4 within the subset) back to grid rows.
+	var subset_cards: Array = []
+	for idx in best_idxs:
+		subset_cards.append(cards[idx])
+	var clear_in_subset: Array = _clearing_indices(subset_cards, int(best_result.rank))
+	var cells: Array = []
+	for ci in clear_in_subset:
+		var grid_row: int = rows[best_idxs[ci]]
+		cells.append(Vector2i(x, grid_row))
+
+	return {
+		"cells": cells,
+		"name": best_result.name,
+		"score": int(best_result.score),
+		"rank": int(best_result.rank),
+		"multiplier": int(best_result.multiplier),
+		"axis": "column",
+	}
+
+
 # Returns the 2×2 same-suit squares that include (col, row), as a list of
 # top-left Vector2i corners. Empty array if none. Used for adjacency-style
 # suit-cluster bonuses on placement (does not clear cells).
@@ -316,12 +402,13 @@ func _init_grid() -> void:
 
 
 func _process(delta: float) -> void:
-	if _flash_t <= 0.0:
-		return
-	_flash_t = maxf(_flash_t - delta, 0.0)
+	# Always redraw — the anticipation-glow outlines pulse via Time.
+	# Cheap: we're drawing ~40 cells of simple rects per frame.
 	queue_redraw()
-	if _flash_t == 0.0:
-		_flash_col = -1
+	if _flash_t > 0.0:
+		_flash_t = maxf(_flash_t - delta, 0.0)
+		if _flash_t == 0.0:
+			_flash_col = -1
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -368,6 +455,41 @@ func _draw() -> void:
 				CardView.draw_empty_slot(self, rect)
 			else:
 				CardView.draw_card(self, card, rect)
+
+	# Anticipation glow: faint pulsing gold outline on each column's drop
+	# target so the player sees where their card will land before tapping.
+	# Color shifts to orange at 6+ ("hot"), red at 7+ ("danger") so the
+	# player gets a clear "this column is loaded — clear from here for a
+	# big payoff, or stop dropping into it" signal.
+	var t_ms := float(Time.get_ticks_msec())
+	var pulse: float = 0.18 + 0.10 * sin(t_ms * 0.003)
+	var hot_pulse: float = 0.32 + 0.18 * sin(t_ms * 0.006)
+	var danger_pulse: float = 0.45 + 0.30 * sin(t_ms * 0.010)
+	for x in GRID_WIDTH:
+		var drop_row := lowest_empty_row(x)
+		if drop_row < 0:
+			continue
+		var aim_rect := cell_local_rect(x, drop_row)
+		var height: int = column_height(x)
+		var glow_color: Color
+		var glow_thickness: float
+		if height >= 7:
+			# Danger: next drop will fill the column → loss. Hard red pulse.
+			glow_color = Color(1.0, 0.25, 0.25, danger_pulse)
+			glow_thickness = 5.0
+		elif height >= 6:
+			# Hot stack: big multiplier waiting. Orange pulse.
+			glow_color = Color(1.0, 0.55, 0.20, hot_pulse)
+			glow_thickness = 4.0
+		else:
+			# Normal anticipation: gentle gold.
+			glow_color = Color(1.0, 0.85, 0.40, pulse)
+			glow_thickness = 3.0
+		draw_rect(aim_rect, glow_color, false, glow_thickness)
+
+	# (Round target column tint removed — was reading as a mystery yellow bar.
+	# target_col is still tracked so game.gd's bonus logic keeps working; only
+	# the visual is gone.)
 
 	if _flash_col >= 0 and _flash_t > 0.0:
 		var cell_w := size.x / float(GRID_WIDTH)

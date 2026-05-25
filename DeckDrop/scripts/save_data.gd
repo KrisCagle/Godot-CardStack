@@ -12,6 +12,17 @@ const DEFAULT_STATS := {
 	"total_hands_cleared": 0,
 	"total_jokers_played": 0,
 	"total_bombs_played": 0,
+	"total_anchors_placed": 0,
+	"total_crowns_placed": 0,
+	"total_sweeps_used": 0,
+	"total_shuffles_used": 0,
+	"total_mirrors_placed": 0,
+	"total_bursts_used": 0,
+	"total_bonus_triggered": 0,
+	"total_pairs_scored": 0,
+	"total_flushes_scored": 0,
+	"total_wagers_won": 0,
+	"max_wager": 0,
 	"highest_combo": 0,
 	"highest_dealer_tier": 0,
 	"highest_cascade_tier": 0,
@@ -29,6 +40,15 @@ var last_daily_login: String = ""
 # Lifetime stats and one-shot achievements
 var stats: Dictionary = {}
 var achievements: Dictionary = {}
+
+# Which boss dealer IDs have been beaten lifetime (used for the Boss Slayer
+# achievement). Keys are dealer IDs ("sharp", "cheat", "ace", "legend", etc.).
+var bosses_beaten: Dictionary = {}
+
+# Theme picker: "" = auto (pick highest unlocked); else a specific theme.id
+# the player chose in the Progress panel. Themes.current() honors this if
+# the theme is unlocked, else falls back to auto-pick.
+var selected_theme_id: String = ""
 
 signal level_up(new_level: int)
 signal xp_changed(xp: int, level: int)
@@ -114,6 +134,24 @@ func claim_achievement(id: String) -> bool:
 	return true
 
 
+func mark_boss_beaten(id: String) -> bool:
+	if String(id).is_empty():
+		return false
+	if bosses_beaten.get(id, false):
+		return false
+	bosses_beaten[id] = true
+	save_game()
+	return true
+
+
+func bosses_beaten_count() -> int:
+	var n := 0
+	for v in bosses_beaten.values():
+		if bool(v):
+			n += 1
+	return n
+
+
 func is_achievement_unlocked(id: String) -> bool:
 	return bool(achievements.get(id, false))
 
@@ -140,6 +178,8 @@ func save_game() -> void:
 	cfg.set_value("meta", "first_time_hands", first_time_hands)
 	cfg.set_value("meta", "stats", stats)
 	cfg.set_value("meta", "achievements", achievements)
+	cfg.set_value("meta", "bosses_beaten", bosses_beaten)
+	cfg.set_value("meta", "selected_theme_id", selected_theme_id)
 	cfg.save(SAVE_PATH)
 
 
@@ -157,6 +197,8 @@ func load_game() -> void:
 	first_time_hands = cfg.get_value("meta", "first_time_hands", {})
 	stats = cfg.get_value("meta", "stats", {})
 	achievements = cfg.get_value("meta", "achievements", {})
+	bosses_beaten = cfg.get_value("meta", "bosses_beaten", {})
+	selected_theme_id = cfg.get_value("meta", "selected_theme_id", "")
 	_init_stats_defaults()
 
 
@@ -178,5 +220,7 @@ func reset_progress() -> void:
 	last_daily_login = ""
 	stats = {}
 	achievements = {}
+	bosses_beaten = {}
+	selected_theme_id = ""
 	_init_stats_defaults()
 	save_game()

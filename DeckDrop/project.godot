@@ -12,15 +12,18 @@ config_version=5
 
 config/name="DeckDrop"
 config/description="Tap a column to drop a card. Make poker hands across rows and columns. Endless."
+config/version="1.0.0"
 run/main_scene="res://scenes/Title.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://icon_app.svg"
+config/version_code=1
 
 [autoload]
 
 SaveData="*res://scripts/save_data.gd"
 Sfx="*res://scripts/sfx.gd"
 MatchState="*res://scripts/match_state.gd"
+FontLoader="*res://scripts/font_loader.gd"
 
 [display]
 
@@ -32,6 +35,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation="portrait"
 
+[gui]
+
+theme/custom="res://themes/main_theme.tres"
+
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
@@ -39,3 +46,4 @@ pointing/emulate_touch_from_mouse=true
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true

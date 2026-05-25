@@ -1,27 +1,64 @@
-[gd_scene load_steps=4 format=3 uid="uid://deckdrop_title"]
+[gd_scene format=3 uid="uid://cg0ohhqg61cui"]
 
-[ext_resource type="Script" path="res://scripts/title.gd" id="1_title"]
-[ext_resource type="Shader" path="res://shaders/background.gdshader" id="2_bgshader"]
+[ext_resource type="Script" uid="uid://c65qb3k7xpy7p" path="res://scripts/title.gd" id="1_title"]
+[ext_resource type="Shader" uid="uid://bcs57cxjab3ag" path="res://shaders/background.gdshader" id="2_bgshader"]
+[ext_resource type="FontFile" uid="uid://bq433kphjhm0g" path="res://SuperMellowRegular-e90Vg.ttf" id="3_2sdm5"]
 
 [sub_resource type="ShaderMaterial" id="bgmat"]
 shader = ExtResource("2_bgshader")
 
-[node name="Title" type="Control"]
+[node name="Title" type="Control" unique_id=1320833174]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_title")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=342065165]
 material = SubResource("bgmat")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.07, 0.09, 0.13, 1)
 
-[node name="CenterColumn" type="VBoxContainer" parent="."]
+[node name="Particles" type="CPUParticles2D" parent="." unique_id=1145165162]
+position = Vector2(540, 1920)
+scale = Vector2(1, 5.76001)
+amount = 100
+lifetime = 9.0
+preprocess = 7.0
+emission_shape = 3
+emission_rect_extents = Vector2(540, 6)
+direction = Vector2(0, -1)
+spread = 25.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 30.0
+initial_velocity_max = 80.0
+scale_amount_min = 6.0
+scale_amount_max = 14.0
+color = Color(0.78, 0.62, 0.3, 0.3)
+
+[node name="CenterPanel" type="Panel" parent="." unique_id=895013710]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -420.0
+offset_top = -700.0
+offset_right = 420.0
+offset_bottom = 700.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1, 1.04)
+
+[node name="CenterColumn" type="VBoxContainer" parent="." unique_id=641202017]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -32,91 +69,106 @@ offset_left = -360.0
 offset_top = -600.0
 offset_right = 360.0
 offset_bottom = 600.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.0195537, 0.95323026)
 theme_override_constants/separation = 28
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="CenterColumn"]
+[node name="SuitDecor" type="Label" parent="CenterColumn" unique_id=501191191]
+modulate = Color(0.85, 0.65, 0.3, 1)
 layout_mode = 2
+theme_override_font_sizes/font_size = 72
+text = "♠   ♥   ♦   ♣"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterColumn" unique_id=1277010241]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8901961, 0.3647059, 1)
+theme_override_fonts/font = ExtResource("3_2sdm5")
+theme_override_font_sizes/font_size = 140
 text = "DeckDrop"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 140
 
-[node name="Subtitle" type="Label" parent="CenterColumn"]
-layout_mode = 2
+[node name="Subtitle" type="Label" parent="CenterColumn" unique_id=570971165]
 modulate = Color(0.65, 0.72, 0.85, 1)
-text = "Tetris meets poker"
-horizontal_alignment = 1
+layout_mode = 2
 theme_override_font_sizes/font_size = 48
+text = "Make Poker hand columns to 
+beat the dealer. Pick card 
+upgrades every round."
+horizontal_alignment = 1
 
-[node name="Spacer1" type="Control" parent="CenterColumn"]
+[node name="Spacer1" type="Control" parent="CenterColumn" unique_id=1370871956]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 
-[node name="LevelLabel" type="Label" parent="CenterColumn"]
+[node name="LevelLabel" type="Label" parent="CenterColumn" unique_id=496665584]
 layout_mode = 2
+theme_override_font_sizes/font_size = 64
 text = "Lv 1"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 64
 
-[node name="XPBar" type="ProgressBar" parent="CenterColumn"]
+[node name="XPBar" type="ProgressBar" parent="CenterColumn" unique_id=2102398976]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
-max_value = 100.0
-value = 0.0
 show_percentage = false
 
-[node name="BestLabel" type="Label" parent="CenterColumn"]
-layout_mode = 2
+[node name="BestLabel" type="Label" parent="CenterColumn" unique_id=999977178]
 modulate = Color(0.6, 0.65, 0.78, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
 text = "Best: 0"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 40
 
-[node name="NextUnlockLabel" type="Label" parent="CenterColumn"]
-layout_mode = 2
+[node name="NextUnlockLabel" type="Label" parent="CenterColumn" unique_id=1800491016]
 modulate = Color(0.65, 0.78, 0.95, 1)
-text = ""
-horizontal_alignment = 1
+layout_mode = 2
 theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
 
-[node name="Spacer2" type="Control" parent="CenterColumn"]
+[node name="Spacer2" type="Control" parent="CenterColumn" unique_id=934137704]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 
-[node name="PlayButton" type="Button" parent="CenterColumn"]
+[node name="PlayButton" type="Button" parent="CenterColumn" unique_id=391867264]
 custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
-text = "PLAY"
 theme_override_font_sizes/font_size = 72
+text = "PLAY"
 
-[node name="DailyButton" type="Button" parent="CenterColumn"]
+[node name="DailyButton" type="Button" parent="CenterColumn" unique_id=561179288]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-text = "DAILY"
 theme_override_font_sizes/font_size = 52
+text = "DAILY"
 
-[node name="ProgressButton" type="Button" parent="CenterColumn"]
+[node name="ProgressButton" type="Button" parent="CenterColumn" unique_id=453313468]
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
-text = "PROGRESS"
 theme_override_font_sizes/font_size = 48
+text = "PROGRESS"
 
-[node name="AdPlaceholder" type="ColorRect" parent="."]
+[node name="AdPlaceholder" type="ColorRect" parent="." unique_id=1775487368]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -150.0
+grow_horizontal = 2
+grow_vertical = 0
 color = Color(0.13, 0.15, 0.2, 1)
 
-[node name="AdLabel" type="Label" parent="AdPlaceholder"]
+[node name="AdLabel" type="Label" parent="AdPlaceholder" unique_id=2051066128]
+modulate = Color(0.38, 0.42, 0.52, 1)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-modulate = Color(0.38, 0.42, 0.52, 1)
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 32
 text = "[ ad placeholder · 1080 × 150 ]"
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 32

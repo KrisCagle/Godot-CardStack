@@ -16,6 +16,17 @@ var _players: Array[AudioStreamPlayer] = []
 var _next_player: int = 0
 var _streams: Dictionary = {}
 
+# Background music — dedicated player. Tries to load an external file first
+# (drop any of these at the listed paths and it'll be used automatically),
+# falls back to the procedural casino loop. Lower volume so it sits under SFX.
+const MUSIC_DB := -12.0
+const MUSIC_PATHS := [
+	"res://assets/audio/music.ogg",
+	"res://assets/audio/music.mp3",
+	"res://assets/audio/music.wav",
+]
+var _music_player: AudioStreamPlayer = null
+
 
 func _ready() -> void:
 	for i in N_PLAYERS:
@@ -24,6 +35,18 @@ func _ready() -> void:
 		add_child(p)
 		_players.append(p)
 	_bake_sounds()
+	_setup_music()
+	play_music()
+
+
+func play_music() -> void:
+	if _music_player != null and not _music_player.playing:
+		_music_player.play()
+
+
+func stop_music() -> void:
+	if _music_player != null:
+		_music_player.stop()
 
 
 func play(name: String) -> void:
@@ -37,12 +60,156 @@ func play(name: String) -> void:
 	p.play()
 
 
+# --- background music ---
+
+
+func _setup_music() -> void:
+	_music_player = AudioStreamPlayer.new()
+	_music_player.volume_db = MUSIC_DB
+	add_child(_music_player)
+	var loaded := _load_music_file()
+	if loaded != null:
+		_music_player.stream = loaded
+	else:
+		_music_player.stream = _bake_casino_loop()
+		print("[music] no file at assets/audio/music.{ogg,mp3,wav} — using procedural casino loop")
+
+
+# Tries each path in MUSIC_PATHS in order. Returns the loaded stream with loop
+# enabled, or null if no file was found.
+func _load_music_file() -> AudioStream:
+	for path in MUSIC_PATHS:
+		if not ResourceLoader.exists(path):
+			continue
+		var stream: AudioStream = load(path)
+		if stream == null:
+			continue
+		_enable_loop_on(stream)
+		print("[music] loaded %s" % path)
+		return stream
+	return null
+
+
+# Forces the correct loop flag for whichever audio format we loaded.
+func _enable_loop_on(stream: AudioStream) -> void:
+	if stream is AudioStreamOggVorbis:
+		stream.loop = true
+	elif stream is AudioStreamMP3:
+		stream.loop = true
+	elif stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+
+
+# 8-second upbeat casino loop, 120 BPM, 4 measures of 4/4. Each measure has:
+#   - Walking bass on every beat (root → third → fifth → third, octave-doubled)
+#   - Chord stab on beats 2 and 4 (snappy attack, fast decay)
+#   - White-noise hi-hat tick on every beat (very short, gives drive)
+# Progression: C major - A minor - F major - G major. Cross-faded loop seam.
+func _bake_casino_loop() -> AudioStreamWAV:
+	var bpm: float = 120.0
+	var beat_duration: float = 60.0 / bpm
+	var measures: int = 4
+	var beats_per_measure: int = 4
+	var total_beats: int = measures * beats_per_measure
+	var duration: float = float(total_beats) * beat_duration
+	var n: int = int(SAMPLE_RATE * duration)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+
+	# Each measure: {chord stab voices, walking bass per beat}.
+	# Bass frequencies are an octave below the chord root for body.
+	var progression: Array = [
+		{
+			"chord": [130.81, 164.81, 196.00],          # C major triad
+			"bass":  [65.40, 82.40, 98.00, 82.40],      # C E G E
+		},
+		{
+			"chord": [110.00, 130.81, 164.81],          # A minor
+			"bass":  [55.00, 65.40, 82.40, 65.40],      # A C E C
+		},
+		{
+			"chord": [174.61, 220.00, 261.63],          # F major
+			"bass":  [87.30, 110.00, 130.81, 110.00],   # F A C A
+		},
+		{
+			"chord": [196.00, 246.94, 293.66],          # G major
+			"bass":  [98.00, 123.47, 146.83, 123.47],   # G B D B
+		},
+	]
+	var samples_per_beat: int = int(SAMPLE_RATE * beat_duration)
+	var bass_vol: float = db_to_linear(-6.0)
+	var chord_vol: float = db_to_linear(-9.0)
+	var hat_vol: float = db_to_linear(-18.0)
+
+	for measure in measures:
+		var prog: Dictionary = progression[measure]
+		var chord_freqs: Array = prog.chord
+		var bass_freqs: Array = prog.bass
+
+		for beat in beats_per_measure:
+			var beat_start: int = (measure * beats_per_measure + beat) * samples_per_beat
+			var bass_freq: float = float(bass_freqs[beat])
+
+			# Walking bass note — slightly warmer than pure sine via subtle 3rd harmonic.
+			for i in samples_per_beat:
+				var t: float = float(i) / float(SAMPLE_RATE)
+				var env: float = exp(-t * 3.5)
+				var s: float = sin(t * bass_freq * TAU) - 0.25 * sin(t * bass_freq * 3.0 * TAU)
+				samples[beat_start + i] += s * env * bass_vol
+
+			# Chord stab on beats 2 and 4 — short, punchy.
+			if beat == 1 or beat == 3:
+				for i in samples_per_beat:
+					var t: float = float(i) / float(SAMPLE_RATE)
+					var env: float = exp(-t * 14.0)
+					var s: float = 0.0
+					for f in chord_freqs:
+						s += sin(t * float(f) * TAU)
+					s /= float(chord_freqs.size())
+					samples[beat_start + i] += s * env * chord_vol
+
+			# Hi-hat tick on every beat — 40ms noise burst, very quick decay.
+			var hat_samples: int = mini(int(SAMPLE_RATE * 0.04), samples_per_beat)
+			for i in hat_samples:
+				var t: float = float(i) / float(SAMPLE_RATE)
+				var env: float = exp(-t * 80.0)
+				var noise: float = (randf() * 2.0 - 1.0)
+				samples[beat_start + i] += noise * env * hat_vol
+
+	# Clamp + cross-fade loop seam (50ms each side) so the repeat doesn't tick.
+	for i in n:
+		samples[i] = clampf(samples[i], -1.0, 1.0)
+	var fade: int = int(SAMPLE_RATE * 0.05)
+	for i in fade:
+		var k: float = float(i) / float(fade)
+		samples[i] *= k
+		samples[n - 1 - i] *= k
+
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = SAMPLE_RATE
+	stream.stereo = false
+
+	var bytes := PackedByteArray()
+	bytes.resize(samples.size() * 2)
+	for i in samples.size():
+		var s: float = samples[i]
+		var v: int = int(s * 32767.0) & 0xFFFF
+		bytes[i * 2] = v & 0xFF
+		bytes[i * 2 + 1] = (v >> 8) & 0xFF
+	stream.data = bytes
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = samples.size()
+	return stream
+
+
 # --- procedural baking ---
 
 
 func _bake_sounds() -> void:
-	# Card lands in cell — soft mid thunk.
-	_streams["place"] = _gen_blip(380.0, 0.10, 12.0, -8.0)
+	# Card lands in cell — multi-layer thunk (low body + high click + paper noise).
+	_streams["place"] = _gen_card_place()
 	# Scoring hand clears — bright major chord.
 	_streams["clear"] = _gen_chord([523.0, 659.0, 784.0], 0.42, 5.0, -5.0)
 	# Combo step — quick up-sweep, climbs the player's ear.
@@ -55,6 +222,27 @@ func _bake_sounds() -> void:
 	_streams["lose"] = _gen_sweep(440.0, 110.0, 0.50, 3.5, -3.0)
 	# Game over — long descending sweep.
 	_streams["game_over"] = _gen_sweep(330.0, 65.0, 0.75, 3.0, -1.0)
+
+
+# Card-landing thunk — three layers stacked, ~180ms:
+#   1. Low THUMP (80 Hz sine, fast decay) — body / weight
+#   2. High CLICK (1200 Hz sine, very fast decay) — attack transient
+#   3. Brief noise burst (50ms, fast decay) — paper / friction texture
+# All three blend into the impression of a card hitting felt.
+func _gen_card_place() -> AudioStreamWAV:
+	var dur: float = 0.18
+	var n: int = int(SAMPLE_RATE * dur)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var vol: float = db_to_linear(-4.0)
+	for i in n:
+		var t: float = float(i) / float(SAMPLE_RATE)
+		var thump: float = sin(t * 80.0 * TAU) * exp(-t * 22.0) * 0.6
+		var click: float = sin(t * 1200.0 * TAU) * exp(-t * 80.0) * 0.4
+		var paper: float = (randf() * 2.0 - 1.0) * exp(-t * 55.0) * 0.30
+		samples[i] = (thump + click + paper) * vol
+	_apply_fade(samples)
+	return _make_wav(samples)
 
 
 func _gen_blip(freq: float, dur: float, decay: float, vol_db: float) -> AudioStreamWAV:

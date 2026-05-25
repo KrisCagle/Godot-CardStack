@@ -123,32 +123,131 @@ func _populate_themes() -> void:
 		var id := String(t.id)
 		var ul: int = int(t.unlock_level)
 		var unlocked := SaveData.level >= ul
+		themes_vbox.add_child(_make_theme_row(t, unlocked, id == current_id))
 
-		var row := HBoxContainer.new()
-		row.size_flags_horizontal = SIZE_EXPAND_FILL
 
-		# Felt color swatch on the left previews the theme.
-		var swatch := ColorRect.new()
-		swatch.custom_minimum_size = Vector2(36, 36)
-		swatch.color = t.felt if unlocked else Color(0.20, 0.22, 0.28)
-		row.add_child(swatch)
+# One row per theme: mini card-preview swatch on the left (felt frame + a
+# pretend K♠ rendered with that theme's actual colors + border + ring), then
+# the theme name + status. Locked themes desaturate the swatch and show the
+# required level. Unlocked rows are tappable to apply the theme.
+func _make_theme_row(t: Dictionary, unlocked: bool, is_active: bool) -> Control:
+	var id := String(t.id)
+	var ul: int = int(t.get("unlock_level", 1))
 
-		var name_label := Label.new()
-		name_label.add_theme_font_size_override("font_size", 28)
-		name_label.size_flags_horizontal = SIZE_EXPAND_FILL
-		if unlocked:
-			if id == current_id:
-				name_label.text = "  %s   ✓ CURRENT" % String(t.name)
-				name_label.modulate = Color(1.00, 0.95, 0.50)
-			else:
-				name_label.text = "  %s   (unlocked)" % String(t.name)
-				name_label.modulate = Color(0.72, 0.85, 1.00)
-		else:
-			name_label.text = "  %s   🔒 Lv %d" % [String(t.name), ul]
-			name_label.modulate = Color(0.50, 0.55, 0.65)
-		row.add_child(name_label)
+	# Outer button so the whole row is tappable when unlocked. For locked
+	# themes we still use a Button so the row sizing matches, but disable it.
+	var btn := Button.new()
+	btn.custom_minimum_size = Vector2(0, 96)
+	btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	btn.disabled = not unlocked
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.add_theme_font_size_override("font_size", 0)  # we draw our own labels
+	if unlocked:
+		var theme_id := id
+		btn.pressed.connect(func(): _on_theme_selected(theme_id))
 
-		themes_vbox.add_child(row)
+	# HBox layout inside the button.
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 18)
+	hbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	hbox.size_flags_vertical = SIZE_EXPAND_FILL
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.anchor_left = 0.0
+	hbox.anchor_top = 0.0
+	hbox.anchor_right = 1.0
+	hbox.anchor_bottom = 1.0
+	hbox.offset_left = 16.0
+	hbox.offset_right = -16.0
+	hbox.offset_top = 8.0
+	hbox.offset_bottom = -8.0
+	btn.add_child(hbox)
+
+	# Card preview — a Control with a custom _draw that paints felt + mini
+	# card using this theme's colors.
+	var preview := _ThemeSwatch.new()
+	preview.custom_minimum_size = Vector2(72, 80)
+	preview.theme_dict = t
+	preview.locked = not unlocked
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(preview)
+
+	# Right side: name + status, stacked.
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = SIZE_EXPAND_FILL
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(vbox)
+
+	var name_label := Label.new()
+	name_label.add_theme_font_size_override("font_size", 30)
+	name_label.text = String(t.name)
+	if unlocked:
+		name_label.modulate = Color(1.00, 0.95, 0.75) if is_active \
+			else Color(0.85, 0.92, 1.00)
+	else:
+		name_label.modulate = Color(0.55, 0.58, 0.65)
+	vbox.add_child(name_label)
+
+	var status := Label.new()
+	status.add_theme_font_size_override("font_size", 22)
+	if not unlocked:
+		status.text = "🔒  Reach level %d" % ul
+		status.modulate = Color(0.55, 0.58, 0.65)
+	elif is_active:
+		status.text = "✓ Active"
+		status.modulate = Color(1.00, 0.85, 0.30)
+	else:
+		status.text = "Tap to apply"
+		status.modulate = Color(0.60, 0.78, 1.00)
+	vbox.add_child(status)
+
+	return btn
+
+
+# Lightweight Control subclass that draws a felt-framed mini card preview
+# using a specific theme dict (not Themes.current()). Lets the Progress
+# panel show what each theme actually looks like without the player having
+# to switch to it first.
+class _ThemeSwatch extends Control:
+	var theme_dict: Dictionary = {}
+	var locked: bool = false
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		# Felt frame so each swatch reads like a tabletop snapshot.
+		var felt: Color = theme_dict.get("felt", Color(0.06, 0.08, 0.12))
+		if locked:
+			felt = Color(0.18, 0.20, 0.25)
+		draw_rect(rect, felt, true)
+		draw_rect(rect, Color(0, 0, 0, 0.4), false, 1.5)
+
+		# Inset mini-card area.
+		var pad := 8.0
+		var card_rect := Rect2(
+			rect.position + Vector2(pad, pad),
+			rect.size - Vector2(pad * 2.0, pad * 2.0)
+		)
+		# Use a fake King of Spades — readable rank + clear suit color cue.
+		var sample := Card.new(Card.Suit.SPADES, Card.Rank.KING)
+		if locked:
+			# Grayed silhouette — no theme reveal until unlocked.
+			draw_rect(card_rect, Color(0.30, 0.32, 0.40), true)
+			draw_rect(card_rect, Color(0.50, 0.55, 0.62), false, 2.0)
+			var font := get_theme_default_font()
+			var fs := int(card_rect.size.y * 0.5)
+			draw_string(font,
+				card_rect.position + Vector2(0, card_rect.size.y * 0.7),
+				"?", HORIZONTAL_ALIGNMENT_CENTER, card_rect.size.x, fs,
+				Color(0.65, 0.68, 0.75))
+			return
+		CardView.draw_card_with_theme(self, sample, card_rect, theme_dict)
+
+
+func _on_theme_selected(id: String) -> void:
+	SaveData.selected_theme_id = id
+	SaveData.save_game()
+	_populate_themes()
 
 
 func _populate_achievements() -> void:
