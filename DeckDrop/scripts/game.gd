@@ -697,9 +697,12 @@ func _end_run(reason: String = "column_overflow") -> void:
 	var previous_level: int = SaveData.level
 	var add_result: Dictionary = SaveData.add_xp(total_xp)
 	var is_new_best: bool = SaveData.record_score(score, MatchState.score_date_for_current_run())
-	# Level-threshold achievement check after the XP award resolves.
+	# Level-threshold achievement checks after the XP award resolves. Both
+	# claim helpers are idempotent — safe to call every run.
 	if SaveData.level >= 12:
 		_try_achievement("theme_collector")
+	if SaveData.level >= 30:
+		_try_achievement("theme_master")
 
 	# Lifetime stat rollup
 	SaveData.increment_stat("total_runs")

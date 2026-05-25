@@ -1,13 +1,26 @@
 class_name Themes
 extends RefCounted
-## Visual themes — card face/border/text colors + table felt. Auto-applies the
-## highest-unlocked theme (gated by SaveData.level), so leveling up visibly
-## changes the look of the game without needing a picker UI.
+## Visual themes — card face/border/text colors + table felt + extended styling
+## (border thickness, inset ring, face accent overlay). Auto-applies the
+## highest-unlocked theme (gated by SaveData.level), but the player can pin
+## any unlocked theme from the Progress panel.
 ##
-## Specials (Joker, Bomb) override the face/border in CardView so their distinct
-## warm tints stay readable across every theme.
+## Schema notes:
+##   card_face, card_border, card_text_red, card_text_black, felt — required.
+##   border_width — optional float, defaults to 2.0 in CardView. Chunky frames
+##                  (4-5) make the theme read as "ornate" vs "minimal".
+##   inner_ring  — optional Color, defaults to transparent (none). When set
+##                 to a visible alpha, CardView draws a thin inset ring just
+##                 inside the main border for ornate / frosted styles.
+##   face_accent — optional Color, defaults to transparent. When set, drawn
+##                 as a faint overlay across the lower face for tinted /
+##                 vignette effects.
+##
+## Specials (Joker, Bomb, Sweep, Shuffle) still get their own warm tints in
+## CardView so the mechanic reads across every theme.
 
 const LIST := [
+	# Free starter — neutral baseline.
 	{
 		"id": "classic",
 		"name": "Classic",
@@ -27,6 +40,7 @@ const LIST := [
 		"card_text_red": Color(0.78, 0.18, 0.22),
 		"card_text_black": Color(0.20, 0.15, 0.05),
 		"felt": Color(0.10, 0.05, 0.14),
+		"border_width": 3.0,
 	},
 	{
 		"id": "neon",
@@ -37,6 +51,7 @@ const LIST := [
 		"card_text_red": Color(1.00, 0.40, 0.70),
 		"card_text_black": Color(0.30, 0.95, 1.00),
 		"felt": Color(0.14, 0.04, 0.22),
+		"border_width": 3.0,
 	},
 	{
 		"id": "crimson",
@@ -47,6 +62,7 @@ const LIST := [
 		"card_text_red": Color(0.78, 0.16, 0.22),
 		"card_text_black": Color(0.15, 0.07, 0.10),
 		"felt": Color(0.10, 0.02, 0.04),
+		"border_width": 3.0,
 	},
 	{
 		"id": "forest",
@@ -57,6 +73,86 @@ const LIST := [
 		"card_text_red": Color(0.85, 0.20, 0.25),
 		"card_text_black": Color(0.08, 0.18, 0.12),
 		"felt": Color(0.04, 0.10, 0.06),
+	},
+	# === New unlocks below — each uses the extended schema to feel distinct ===
+
+	# Royal velvet purple table, cream face, thick gold frame + inset gold ring.
+	# Reads as ornate / luxurious / casino-VIP.
+	{
+		"id": "royal_velvet",
+		"name": "Royal Velvet",
+		"unlock_level": 15,
+		"card_face": Color(0.97, 0.93, 0.82),
+		"card_border": Color(0.85, 0.65, 0.20),
+		"card_text_red": Color(0.72, 0.10, 0.16),
+		"card_text_black": Color(0.20, 0.10, 0.05),
+		"felt": Color(0.16, 0.04, 0.20),
+		"border_width": 5.0,
+		"inner_ring": Color(0.95, 0.78, 0.30, 0.85),
+		"face_accent": Color(0.85, 0.65, 0.20, 0.06),
+	},
+
+	# Frosted ice palette — pale blue felt, near-white face, chunky ice-blue
+	# border with bright white inner ring. Cards feel like polished ice.
+	{
+		"id": "frost",
+		"name": "Frost",
+		"unlock_level": 18,
+		"card_face": Color(0.94, 0.97, 1.00),
+		"card_border": Color(0.45, 0.72, 0.92),
+		"card_text_red": Color(0.78, 0.20, 0.30),
+		"card_text_black": Color(0.10, 0.20, 0.35),
+		"felt": Color(0.06, 0.14, 0.22),
+		"border_width": 5.0,
+		"inner_ring": Color(0.85, 0.95, 1.00, 0.95),
+		"face_accent": Color(0.55, 0.85, 1.00, 0.05),
+	},
+
+	# Vintage bicycle paper — leather brown table, parchment face, thin dark
+	# brown border, no ring. Classic deck-of-cards minimalism.
+	{
+		"id": "vintage",
+		"name": "Vintage",
+		"unlock_level": 22,
+		"card_face": Color(0.96, 0.92, 0.82),
+		"card_border": Color(0.30, 0.18, 0.10),
+		"card_text_red": Color(0.72, 0.15, 0.18),
+		"card_text_black": Color(0.18, 0.10, 0.05),
+		"felt": Color(0.18, 0.10, 0.06),
+		"border_width": 2.0,
+		"face_accent": Color(0.55, 0.40, 0.20, 0.04),
+	},
+
+	# Cyberpunk — pure black felt, dark indigo face, hot magenta thick border
+	# with cyan inner ring. Glowy / synthwave.
+	{
+		"id": "cyberpunk",
+		"name": "Cyberpunk",
+		"unlock_level": 26,
+		"card_face": Color(0.08, 0.05, 0.18),
+		"card_border": Color(1.00, 0.20, 0.75),
+		"card_text_red": Color(1.00, 0.40, 0.65),
+		"card_text_black": Color(0.30, 0.95, 1.00),
+		"felt": Color(0.02, 0.02, 0.05),
+		"border_width": 5.0,
+		"inner_ring": Color(0.20, 0.95, 1.00, 0.90),
+		"face_accent": Color(0.50, 0.10, 0.80, 0.10),
+	},
+
+	# Galaxy — deep navy felt with starry feel, near-black face, silver border
+	# with bright silver inner ring + faint cosmic tint overlay.
+	{
+		"id": "galaxy",
+		"name": "Galaxy",
+		"unlock_level": 30,
+		"card_face": Color(0.10, 0.10, 0.18),
+		"card_border": Color(0.80, 0.82, 0.95),
+		"card_text_red": Color(1.00, 0.55, 0.70),
+		"card_text_black": Color(0.70, 0.85, 1.00),
+		"felt": Color(0.03, 0.02, 0.10),
+		"border_width": 4.0,
+		"inner_ring": Color(0.95, 0.95, 1.00, 0.70),
+		"face_accent": Color(0.40, 0.30, 0.85, 0.10),
 	},
 ]
 
