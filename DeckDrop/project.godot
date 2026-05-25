@@ -5,6 +5,10 @@
 ; Format:
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
+;
+; NOTE: do not put #-comments inside any [section] — Godot's INI writer
+; silently mangles them on save (it merges the comment text into the
+; following key, breaking the file). Comments only here at the top.
 
 config_version=5
 
@@ -15,9 +19,6 @@ config/description="Tap a column to drop a card. Make poker hands across rows an
 run/main_scene="res://scenes/Title.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon_app.svg"
-# Version metadata — bump version/string + version/code for every Play release.
-# version/code must increase on every Play upload (it's how Play orders
-# upgrades). version/string is the human-facing label shown in the listing.
 config/version="1.0.0"
 config/version_code=1
 
