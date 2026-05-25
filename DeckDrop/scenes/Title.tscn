@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c65qb3k7xpy7p" path="res://scripts/title.gd" id="1_title"]
 [ext_resource type="Shader" uid="uid://bcs57cxjab3ag" path="res://shaders/background.gdshader" id="2_bgshader"]
+[ext_resource type="FontFile" uid="uid://bq433kphjhm0g" path="res://SuperMellowRegular-e90Vg.ttf" id="3_2sdm5"]
 
 [sub_resource type="ShaderMaterial" id="bgmat"]
 shader = ExtResource("2_bgshader")
@@ -27,7 +28,8 @@ color = Color(0.07, 0.09, 0.13, 1)
 
 [node name="Particles" type="CPUParticles2D" parent="." unique_id=1145165162]
 position = Vector2(540, 1920)
-amount = 14
+scale = Vector2(1, 5.76001)
+amount = 100
 lifetime = 9.0
 preprocess = 7.0
 emission_shape = 3
@@ -69,7 +71,7 @@ offset_right = 360.0
 offset_bottom = 600.0
 grow_horizontal = 2
 grow_vertical = 2
-scale = Vector2(1, 0.96)
+scale = Vector2(1.0195537, 0.95323026)
 theme_override_constants/separation = 28
 alignment = 1
 
@@ -82,6 +84,8 @@ horizontal_alignment = 1
 
 [node name="TitleLabel" type="Label" parent="CenterColumn" unique_id=1277010241]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8901961, 0.3647059, 1)
+theme_override_fonts/font = ExtResource("3_2sdm5")
 theme_override_font_sizes/font_size = 140
 text = "DeckDrop"
 horizontal_alignment = 1

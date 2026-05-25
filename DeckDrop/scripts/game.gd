@@ -403,7 +403,32 @@ func _process_cascades() -> void:
 		if cascade_tier >= 2:
 			_shake(7.0, 0.18)
 
+		# Multi-hand bonus: when multiple groups fire in the same tier we
+		# bump combo (one per extra hand), apply a score multiplier, and
+		# pop a celebratory DOUBLE/TRIPLE/QUAD CASCADE label. Makes the
+		# "set up two columns then drop the trigger" play feel huge.
+		var n_groups: int = actionable.size()
+		var multi_mult: float = 1.0
+		if n_groups >= 4:
+			multi_mult = 2.0
+		elif n_groups == 3:
+			multi_mult = 1.5
+		elif n_groups == 2:
+			multi_mult = 1.25
+		if n_groups >= 2 and not _combos_disabled:
+			# Extra +1 combo per additional hand cleared this tier (combo
+			# was already bumped once for the placement that triggered the
+			# cascade).
+			_combo += n_groups - 1
+			SaveData.update_max_stat("highest_combo", _combo)
+			_update_objective("max_combo", _combo)
+			# Recompute combo_mult for this tier so the bump applies now.
+			combo_mult = 1.0 + float(maxi(0, _combo - 1)) * _active_combo_increment
+		if n_groups >= 2:
+			_spawn_multi_hand_splash(n_groups)
+
 		var all_cells: Array = []
+		var group_idx: int = 0
 		for g in actionable:
 			# Flare: any Flare card in the hand triples the score (single 3×
 			# regardless of how many — avoids 9× / 27× cheese).
@@ -452,7 +477,7 @@ func _process_cascades() -> void:
 					SaveData.increment_stat("total_bonus_triggered")
 					_check_threshold_achievement("bonus_hunter", "total_bonus_triggered", 10)
 					break
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult))
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult * multi_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -495,13 +520,16 @@ func _process_cascades() -> void:
 					_try_achievement("wild_thing")
 					break
 
-			print("[score] %s (%s) %d × tier %.1f × combo %.1f → %d  (total %d)" \
-				% [g.name, g.axis, g.score, tier_mult, combo_mult, earned, score])
+			print("[score] %s (%s) %d × tier %.1f × combo %.1f × multi %.2f → %d  (total %d)" \
+				% [g.name, g.axis, g.score, tier_mult, combo_mult, multi_mult, earned, score])
 
-			_spawn_hand_popup(g, earned)
-			_spawn_cell_glow(g)
+			# Stagger popup + glow per group so multi-hand drops cascade visually
+			# (ping … ping … ping) instead of one big simultaneous flash.
+			_spawn_hand_popup_delayed(g, earned, group_idx * 0.12)
+			_spawn_cell_glow_delayed(g, group_idx * 0.12)
 			if int(g.rank) >= HandEvaluator.HandRank.FOUR_OF_A_KIND:
 				_shake(14.0, 0.30)
+			group_idx += 1
 
 		_refresh_score()
 		if score >= 5000:
@@ -522,7 +550,11 @@ func _process_cascades() -> void:
 				continue
 			unique_cells.append(c)
 
-		await get_tree().create_timer(0.18).timeout
+		# Hold a touch longer when multiple groups are staggering — lets the
+		# last popup (group N at +N*0.12s) actually appear before everything
+		# clears off-screen.
+		var stagger_hold: float = 0.18 + maxf(0.0, float(n_groups - 1) * 0.12)
+		await get_tree().create_timer(stagger_hold).timeout
 		_spawn_clear_particles(unique_cells)
 		playfield.clear_cells(unique_cells)
 		await get_tree().create_timer(CLEAR_DELAY).timeout
@@ -1663,6 +1695,68 @@ func _spawn_hand_popup(g: Dictionary, earned: int) -> void:
 	tween.tween_property(popup, "modulate:a", 0.0, 0.40).set_delay(0.55)
 
 	await tween.finished
+	popup.queue_free()
+
+
+# Wrapper that delays the popup spawn so multi-hand cascades stagger visually
+# (popup A at t=0, popup B at t+0.12s, popup C at t+0.24s …). Awaiting on a
+# zero-duration timer would still work; the explicit branch just dodges a
+# pointless allocation when there's no delay.
+func _spawn_hand_popup_delayed(g: Dictionary, earned: int, delay: float) -> void:
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout
+	_spawn_hand_popup(g, earned)
+
+
+# Same idea for the cell glow halo so the glow appears in lockstep with its
+# matching popup during staggered multi-hand reveals.
+func _spawn_cell_glow_delayed(g: Dictionary, delay: float) -> void:
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout
+	_spawn_cell_glow(g)
+
+
+# Celebration banner when 2+ scoring groups fire in the same cascade tier.
+# Sits center-screen, scales in, holds, fades. Color and label scale with
+# the count: gold for DOUBLE, hot-pink for TRIPLE, electric for QUAD+.
+func _spawn_multi_hand_splash(count: int) -> void:
+	var text: String
+	var color: Color
+	if count >= 4:
+		text = "QUAD CASCADE!"
+		color = Color(0.55, 0.95, 1.00)
+	elif count == 3:
+		text = "TRIPLE!"
+		color = Color(1.00, 0.55, 0.85)
+	else:
+		text = "DOUBLE!"
+		color = Color(1.00, 0.88, 0.40)
+
+	var popup := Label.new()
+	popup.text = text
+	popup.add_theme_font_size_override("font_size", 96)
+	popup.add_theme_color_override("font_color", color)
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	popup.add_theme_constant_override("outline_size", 14)
+	popup.z_index = 125
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	popup.position = (size - popup.size) * 0.5
+	popup.position.y -= 220.0
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.45, 0.45)
+	popup.modulate.a = 0.0
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(popup, "scale", Vector2(1.15, 1.15), 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.15).set_delay(0.22)
+	t.tween_property(popup, "modulate:a", 1.0, 0.18)
+	t.tween_property(popup, "modulate:a", 0.0, 0.45).set_delay(0.70)
+
+	await t.finished
 	popup.queue_free()
 
 
