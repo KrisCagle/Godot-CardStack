@@ -5,10 +5,6 @@
 ; Format:
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
-;
-; NOTE: do not put #-comments inside any [section] — Godot's INI writer
-; silently mangles them on save (it merges the comment text into the
-; following key, breaking the file). Comments only here at the top.
 
 config_version=5
 
@@ -16,10 +12,10 @@ config_version=5
 
 config/name="DeckDrop"
 config/description="Tap a column to drop a card. Make poker hands across rows and columns. Endless."
+config/version="1.0.0"
 run/main_scene="res://scenes/Title.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon_app.svg"
-config/version="1.0.0"
 config/version_code=1
 
 [autoload]
@@ -50,3 +46,4 @@ pointing/emulate_touch_from_mouse=true
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
