@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Play Store marketing screenshot #1 — Title.
+  1080x1920, casino-felt frame with bold gold headline above the actual
+  Godot screenshot. Embeds raw/01_title.png via relative href so the SVG
+  stays portable across the repo.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <radialGradient id="feltGrad" cx="50%" cy="40%" r="80%">
+      <stop offset="0%"   stop-color="#1a4a2a"/>
+      <stop offset="55%"  stop-color="#0c2e18"/>
+      <stop offset="100%" stop-color="#04150b"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#ffe9a0"/>
+      <stop offset="55%"  stop-color="#e0b14a"/>
+      <stop offset="100%" stop-color="#9c7424"/>
+    </linearGradient>
+    <filter id="textShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.7"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#feltGrad)"/>
+  <rect x="60" y="30" width="960" height="2" fill="#c8a242" opacity="0.55"/>
+
+  <text x="540" y="135" text-anchor="middle"
+        font-family="'Helvetica Neue', 'Arial Black', sans-serif"
+        font-weight="900" font-size="78" letter-spacing="6"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
+        filter="url(#textShadow)">CONNECT 4 MEETS POKER</text>
+
+  <text x="540" y="195" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-style="italic" font-size="34" letter-spacing="2"
+        fill="#e8d8b0" opacity="0.92">Drop cards. Build hands. Chase the score.</text>
+
+  <rect x="100" y="240" width="880" height="1564" fill="#000" opacity="0.25"/>
+  <image href="../raw/01_title.png" x="100" y="240" width="880" height="1564" preserveAspectRatio="xMidYMid meet"/>
+  <rect x="100" y="240" width="880" height="1564" fill="none" stroke="#c8a242" stroke-width="3" opacity="0.85"/>
+  <rect x="106" y="246" width="868" height="1552" fill="none" stroke="#c8a242" stroke-width="1" opacity="0.45"/>
+
+  <text x="540" y="1880" text-anchor="middle"
+        font-family="'Helvetica Neue', 'Arial Black', sans-serif"
+        font-weight="900" font-size="42" letter-spacing="8"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1"
+        filter="url(#textShadow)">DECKDROP</text>
+</svg>
