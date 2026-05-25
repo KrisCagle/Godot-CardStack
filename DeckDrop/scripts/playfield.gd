@@ -10,7 +10,7 @@ extends Control
 
 const GRID_WIDTH := 5
 const GRID_HEIGHT := 8
-const COL_WINDOW := 5  # Score the bottom N cards of any column when filled.
+const COL_WINDOW := 5  # Length of a column scoring window.
 const CELL_PAD := 6.0
 
 const COLOR_FLASH := Color(0.45, 0.65, 1.0, 1.0)
@@ -121,30 +121,44 @@ func find_scoring_groups() -> Array:
 			"axis": "row",
 		})
 
-	var start_y := GRID_HEIGHT - COL_WINDOW
+	# Columns: scan EVERY 5-card window in the column (not just the bottom 5)
+	# and emit the best-scoring window. Lets a hand at the top of a tall
+	# column score and clear instead of just sitting there until overflow.
+	# Picking the single highest-scoring window per column avoids stacking
+	# 2-4 overlapping column groups when the column is full.
 	for x in GRID_WIDTH:
-		var col_cards: Array = []
-		var complete := true
-		for y in range(start_y, GRID_HEIGHT):
-			var c: Card = grid[x][y]
-			if c == null:
-				complete = false
-				break
-			col_cards.append(c)
-		if not complete:
-			continue
-		var result: Dictionary = HandEvaluator.evaluate(col_cards)
-		if int(result.score) <= 0:
+		var best_result: Dictionary = {}
+		var best_y_start: int = -1
+		var best_cards: Array = []
+		for y_start in range(GRID_HEIGHT - COL_WINDOW + 1):
+			var col_cards: Array = []
+			var complete := true
+			for y in range(y_start, y_start + COL_WINDOW):
+				var c: Card = grid[x][y]
+				if c == null:
+					complete = false
+					break
+				col_cards.append(c)
+			if not complete:
+				continue
+			var result: Dictionary = HandEvaluator.evaluate(col_cards)
+			if int(result.score) <= 0:
+				continue
+			if best_result.is_empty() or int(result.score) > int(best_result.get("score", 0)):
+				best_result = result
+				best_y_start = y_start
+				best_cards = col_cards
+		if best_result.is_empty():
 			continue
 		var cells: Array = []
-		for i in _clearing_indices(col_cards, int(result.rank)):
-			cells.append(Vector2i(x, start_y + i))
+		for i in _clearing_indices(best_cards, int(best_result.rank)):
+			cells.append(Vector2i(x, best_y_start + i))
 		groups.append({
 			"cells": cells,
-			"name": result.name,
-			"score": int(result.score),
-			"rank": int(result.rank),
-			"multiplier": int(result.multiplier),
+			"name": best_result.name,
+			"score": int(best_result.score),
+			"rank": int(best_result.rank),
+			"multiplier": int(best_result.multiplier),
 			"axis": "column",
 		})
 
