@@ -4,6 +4,8 @@
 # Build / export output
 build/
 builds/
+*.aab
+*.apk
 *.tmp
 *~
 
