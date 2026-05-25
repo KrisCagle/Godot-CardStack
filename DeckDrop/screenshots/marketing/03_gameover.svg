@@ -1,50 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Play Store marketing screenshot #3 — Game over / payout.
-  Same template. Headline targets replayability + meta progression.
+  Play Store screenshot #3 — Game-over / payout with feature callouts.
+  Recreates the DEALER WINS panel layered over a hint of the playfield.
+  Gold overlays sell the meta-progression hook (XP, levels, themes).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
   <defs>
-    <radialGradient id="feltGrad" cx="50%" cy="40%" r="80%">
-      <stop offset="0%"   stop-color="#1a4a2a"/>
-      <stop offset="55%"  stop-color="#0c2e18"/>
-      <stop offset="100%" stop-color="#04150b"/>
-    </radialGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0e1426"/>
+      <stop offset="100%" stop-color="#070b18"/>
+    </linearGradient>
     <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="#ffe9a0"/>
       <stop offset="55%"  stop-color="#e0b14a"/>
       <stop offset="100%" stop-color="#9c7424"/>
     </linearGradient>
-    <filter id="textShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-      <feOffset dx="0" dy="3" result="off"/>
+    <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#1a2238"/>
+      <stop offset="100%" stop-color="#0f1626"/>
+    </linearGradient>
+    <pattern id="diamonds" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M30 5 L55 30 L30 55 L5 30 Z" fill="none" stroke="#1d2843" stroke-width="0.8"/>
+    </pattern>
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="4" result="off"/>
       <feComponentTransfer><feFuncA type="linear" slope="0.7"/></feComponentTransfer>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
 
-  <rect width="1080" height="1920" fill="url(#feltGrad)"/>
-  <rect x="60" y="30" width="960" height="2" fill="#c8a242" opacity="0.55"/>
+  <rect width="1080" height="1920" fill="url(#bgGrad)"/>
+  <rect width="1080" height="1920" fill="url(#diamonds)" opacity="0.5"/>
 
-  <text x="540" y="135" text-anchor="middle"
+  <!-- Top headline -->
+  <text x="540" y="105" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
-        font-weight="900" font-size="76" letter-spacing="5"
+        font-weight="900" font-size="64" letter-spacing="3"
         fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
-        filter="url(#textShadow)">EVERY RUN, A NEW HIGH SCORE</text>
-
-  <text x="540" y="195" text-anchor="middle"
+        filter="url(#goldGlow)">EVERY RUN, A NEW HIGH SCORE</text>
+  <text x="540" y="165" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="34" letter-spacing="2"
-        fill="#e8d8b0" opacity="0.92">Level up. Unlock themes. Beat the boss.</text>
+        font-style="italic" font-size="32" letter-spacing="2"
+        fill="#e8d8b0" opacity="0.92">Level up, unlock themes, beat the boss.</text>
 
-  <rect x="100" y="240" width="880" height="1564" fill="#000" opacity="0.25"/>
-  <image href="../raw/03_gameover.png" x="100" y="240" width="880" height="1564" preserveAspectRatio="xMidYMid meet"/>
-  <rect x="100" y="240" width="880" height="1564" fill="none" stroke="#c8a242" stroke-width="3" opacity="0.85"/>
-  <rect x="106" y="246" width="868" height="1552" fill="none" stroke="#c8a242" stroke-width="1" opacity="0.45"/>
+  <!-- Faint hint of HUD at top of frame -->
+  <rect x="40" y="220" width="1000" height="120" rx="14"
+        fill="#0f1830" opacity="0.45" stroke="#2a3550" stroke-width="2"/>
+  <text x="72" y="280" font-family="'Helvetica Neue', sans-serif" font-weight="800" font-size="48" fill="#f0f3fa" opacity="0.55">Tier 2</text>
+  <text x="1008" y="280" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-weight="700" font-size="44" fill="#f0f3fa" opacity="0.55">Score 685</text>
+  <text x="72" y="320" font-family="'Helvetica Neue', sans-serif" font-size="28" fill="#f9d24a" opacity="0.55">× THE HUSTLER · 100 to beat</text>
 
+  <!-- DEALER WINS payout panel -->
+  <rect x="90" y="420" width="900" height="1130" rx="24" ry="24"
+        fill="url(#panelGrad)" stroke="url(#goldGrad)" stroke-width="3"/>
+  <rect x="100" y="430" width="880" height="1110" rx="18" ry="18"
+        fill="none" stroke="#c8a242" stroke-width="1" opacity="0.5"/>
+
+  <!-- DEALER WINS title -->
+  <text x="540" y="555" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-weight="900"
+        font-size="86" letter-spacing="6" fill="#ff8a92"
+        filter="url(#goldGlow)">DEALER WINS</text>
+
+  <!-- — PAYOUT — separator -->
+  <text x="540" y="670" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-weight="700"
+        font-size="32" letter-spacing="6" fill="url(#goldGrad)">— PAYOUT —</text>
+
+  <text x="540" y="780" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-weight="700"
+        font-size="82" fill="#f0f3fa">Score  685</text>
+  <text x="540" y="852" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#cfd6e6">Best hand: Three of a Kind   +265</text>
+  <text x="540" y="900" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#cfd6e6">Modifier: Joker Wild</text>
+
+  <line x1="200" y1="970" x2="880" y2="970" stroke="#3a4a6a" stroke-width="2"/>
+
+  <!-- — BONUS — separator -->
+  <text x="540" y="1040" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-weight="700"
+        font-size="32" letter-spacing="6" fill="url(#goldGrad)">— BONUS —</text>
+
+  <text x="540" y="1135" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-weight="700"
+        font-size="64" fill="#f0f3fa">+6 XP</text>
+  <text x="540" y="1195" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-size="30" fill="#cfd6e6">Lv 8 · 306 / 2,262 XP</text>
+
+  <line x1="200" y1="1255" x2="880" y2="1255" stroke="#3a4a6a" stroke-width="2"/>
+
+  <!-- Buttons -->
+  <g>
+    <rect x="170" y="1330" width="340" height="125" rx="14" ry="14"
+          fill="#0f1830" stroke="url(#goldGrad)" stroke-width="2.5"/>
+    <text x="340" y="1408" text-anchor="middle"
+          font-family="'Helvetica Neue', sans-serif" font-weight="800"
+          font-size="42" letter-spacing="3" fill="#f0f3fa">PLAY AGAIN</text>
+
+    <rect x="570" y="1330" width="340" height="125" rx="14" ry="14"
+          fill="#0f1830" stroke="#3a4a6a" stroke-width="2"/>
+    <text x="740" y="1408" text-anchor="middle"
+          font-family="'Helvetica Neue', sans-serif" font-weight="800"
+          font-size="42" letter-spacing="3" fill="#a8b4d0">MENU</text>
+  </g>
+
+  <!-- Bottom feature callouts -->
+  <g font-family="'Helvetica Neue', 'Arial Black', sans-serif" text-anchor="middle">
+    <text x="540" y="1680" font-weight="900" font-size="58" letter-spacing="3"
+          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
+          filter="url(#goldGlow)">LEVEL UP · UNLOCK · REPEAT</text>
+    <text x="540" y="1755" font-weight="800" font-size="40" letter-spacing="2"
+          fill="#f9d24a" filter="url(#goldGlow)">25 PERKS · 10 DEALERS · ENDLESS RUNS</text>
+  </g>
+
+  <!-- DECKDROP wordmark -->
   <text x="540" y="1880" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
         font-weight="900" font-size="42" letter-spacing="8"
-        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1"
-        filter="url(#textShadow)">DECKDROP</text>
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
+        filter="url(#goldGlow)">DECKDROP</text>
 </svg>
