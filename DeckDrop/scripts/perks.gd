@@ -90,8 +90,8 @@ const POOL := [
 	},
 	{
 		"id": "lucky_draw", "name": "Lucky Draw",
-		"description": "Next 5 cards are normal (no specials)",
-		"color": Color(0.75, 1.00, 0.75),
+		"description": "Next 3 cards are guaranteed specials",
+		"color": Color(1.00, 0.85, 0.40),
 	},
 	{
 		"id": "hearts_heater", "name": "Hearts Heater",

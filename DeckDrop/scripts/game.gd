@@ -751,45 +751,52 @@ func _advance_queue() -> void:
 
 
 func _draw_card_with_specials() -> Card:
-	# Lucky Draw perk: next N draws are guaranteed normal cards (skip the
-	# special roll entirely). Counter is set by the perk match arm.
+	# Lucky Draw perk (reworked): next N draws are GUARANTEED specials.
+	# Original version forced normal cards, which was anti-helpful — specials
+	# are the rare, powerful pool, so guaranteeing them away made the perk
+	# actively bad. Now picking Lucky Draw means the next 3 draws roll a
+	# special using the same Joker/other-specials distribution.
 	if _lucky_draw_remaining > 0:
 		_lucky_draw_remaining -= 1
-		return _deck.draw_card()
+		return _roll_special_card()
 	var chance := _special_chance_for_tier(_tier) * _active_special_rate_mult
 	# Use the seeded _specials_rng so daily-mode special placements are
 	# deterministic too — without this, two players on the same daily seed
 	# could see different Joker/Bomb positions.
 	if _specials_rng.randf() < chance:
-		# Joker share comes off the top; the remaining 10 specials (Bomb /
-		# Sweep / Surge / Anchor / Flare / Crown / Shuffle / Mirror / Burst /
-		# Bonus) split the rest in equal tenths so the joker_ratio modifier
-		# still controls the Joker share.
-		if _specials_rng.randf() < _active_joker_ratio:
-			return Card.make_joker()
-		var roll: int = _specials_rng.randi() % 10
-		match roll:
-			0:
-				return Card.make_bomb()
-			1:
-				return Card.make_sweep()
-			2:
-				return Card.make_surge(_specials_rng)
-			3:
-				return Card.make_anchor(_specials_rng)
-			4:
-				return Card.make_flare(_specials_rng)
-			5:
-				return Card.make_crown(_specials_rng)
-			6:
-				return Card.make_shuffle()
-			7:
-				return Card.make_mirror(_specials_rng)
-			8:
-				return Card.make_burst(_specials_rng)
-			_:
-				return Card.make_bonus(_specials_rng)
+		return _roll_special_card()
 	return _deck.draw_card()
+
+
+# Picks one special card via the seeded RNG. Joker share comes off the top
+# (gated by _active_joker_ratio so the modifier still tunes it); the remaining
+# 10 specials — Bomb / Sweep / Surge / Anchor / Flare / Crown / Shuffle /
+# Mirror / Burst / Bonus — split the rest in equal tenths.
+func _roll_special_card() -> Card:
+	if _specials_rng.randf() < _active_joker_ratio:
+		return Card.make_joker()
+	var roll: int = _specials_rng.randi() % 10
+	match roll:
+		0:
+			return Card.make_bomb()
+		1:
+			return Card.make_sweep()
+		2:
+			return Card.make_surge(_specials_rng)
+		3:
+			return Card.make_anchor(_specials_rng)
+		4:
+			return Card.make_flare(_specials_rng)
+		5:
+			return Card.make_crown(_specials_rng)
+		6:
+			return Card.make_shuffle()
+		7:
+			return Card.make_mirror(_specials_rng)
+		8:
+			return Card.make_burst(_specials_rng)
+		_:
+			return Card.make_bonus(_specials_rng)
 
 
 func _special_chance_for_tier(t: int) -> float:
@@ -1387,7 +1394,9 @@ func _apply_perk(perk: Dictionary) -> void:
 		"xp_doubler":
 			_xp_objective_mult = 1.5
 		"lucky_draw":
-			_lucky_draw_remaining = 5
+			# Reworked: next 3 draws are GUARANTEED specials (was 5 forced
+			# normals, which removed value rather than adding it).
+			_lucky_draw_remaining = 3
 		"hearts_heater":
 			_hearts_heater = true
 		"quick_tap":
