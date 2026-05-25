@@ -317,6 +317,14 @@ func _on_column_tapped(col: int) -> void:
 	await _process_cascades()
 	_check_tier_up()
 
+	# Stuck-stack mercy: if the placement column is at 7+ cards and the cascade
+	# didn't clear anything from it (genuinely no scoring hand available even
+	# with 5-of-N scanning), slide out the bottom card so the column shrinks
+	# instead of silently inching toward the overflow loss next turn. Only
+	# fires at 7+ so the player still feels real pressure approaching the
+	# danger zone — 5 and 6 cards remain "manage it yourself".
+	await _maybe_mercy_clear(col)
+
 	if playfield.is_any_column_full():
 		_end_run("column_overflow")
 		return
@@ -477,7 +485,23 @@ func _process_cascades() -> void:
 					SaveData.increment_stat("total_bonus_triggered")
 					_check_threshold_achievement("bonus_hunter", "total_bonus_triggered", 10)
 					break
-			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult * multi_mult))
+			# HOT STACK BONUS — column-axis groups get a big payoff when they
+			# fire from a tall column. Makes letting a column grow past 5
+			# cards mechanically rewarding instead of just risky. The height
+			# used is the column's current size BEFORE the clear.
+			var stack_mult: float = 1.0
+			var stack_col: int = -1
+			var stack_height: int = 0
+			if String(g.get("axis", "")) == "column" and not g.cells.is_empty():
+				stack_col = int((g.cells[0] as Vector2i).x)
+				stack_height = playfield.column_height(stack_col)
+				if stack_height >= 8:
+					stack_mult = 4.0
+				elif stack_height == 7:
+					stack_mult = 2.5
+				elif stack_height == 6:
+					stack_mult = 1.5
+			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult * multi_mult * stack_mult))
 			score += earned
 			all_cells.append_array(g.cells)
 
@@ -520,13 +544,17 @@ func _process_cascades() -> void:
 					_try_achievement("wild_thing")
 					break
 
-			print("[score] %s (%s) %d × tier %.1f × combo %.1f × multi %.2f → %d  (total %d)" \
-				% [g.name, g.axis, g.score, tier_mult, combo_mult, multi_mult, earned, score])
+			print("[score] %s (%s) %d × tier %.1f × combo %.1f × multi %.2f × stack %.2f → %d  (total %d)" \
+				% [g.name, g.axis, g.score, tier_mult, combo_mult, multi_mult, stack_mult, earned, score])
 
 			# Stagger popup + glow per group so multi-hand drops cascade visually
 			# (ping … ping … ping) instead of one big simultaneous flash.
 			_spawn_hand_popup_delayed(g, earned, group_idx * 0.12)
 			_spawn_cell_glow_delayed(g, group_idx * 0.12)
+			# Hot Stack bonus popup — anchored to the cleared column so the
+			# player connects the bonus to the tall stack they just cashed in.
+			if stack_mult > 1.0 and stack_col >= 0:
+				_spawn_stack_bonus_popup(stack_col, stack_height, stack_mult, group_idx * 0.12)
 			if int(g.rank) >= HandEvaluator.HandRank.FOUR_OF_A_KIND:
 				_shake(14.0, 0.30)
 			group_idx += 1
@@ -1723,6 +1751,122 @@ func _spawn_cell_glow_delayed(g: Dictionary, delay: float) -> void:
 	if delay > 0.0:
 		await get_tree().create_timer(delay).timeout
 	_spawn_cell_glow(g)
+
+
+# Hot Stack bonus popup — drifts up next to the scoring popup with the
+# stack height + multiplier so the player connects "tall column" to "big
+# payoff". Color shifts with the multiplier tier so it reads at a glance.
+func _spawn_stack_bonus_popup(col: int, height: int, mult: float, delay: float) -> void:
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout
+
+	var text := "HOT STACK ×%.1f" % mult
+	if height >= 8:
+		text = "MAX STACK ×%.1f!" % mult
+	var color: Color
+	if height >= 8:
+		color = Color(1.00, 0.45, 0.45)
+	elif height >= 7:
+		color = Color(1.00, 0.62, 0.30)
+	else:
+		color = Color(1.00, 0.82, 0.40)
+
+	var popup := Label.new()
+	popup.text = text
+	popup.add_theme_font_size_override("font_size", 38)
+	popup.add_theme_color_override("font_color", color)
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
+	popup.add_theme_constant_override("outline_size", 8)
+	popup.z_index = 115
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	# Anchor to the top of the column so the player's eye sees "this tall
+	# column just paid out." Cell rect for row 0 = top of the column.
+	var rect: Rect2 = playfield.cell_local_rect(col, 0)
+	var anchor: Vector2 = playfield.global_position + rect.position + Vector2(rect.size.x * 0.5, -20.0)
+	popup.position = anchor - popup.size * 0.5
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.6, 0.6)
+	var start_y := popup.position.y
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(popup, "position:y", start_y - 110.0, 0.85) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.18) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "modulate:a", 0.0, 0.35).set_delay(0.50)
+
+	await t.finished
+	popup.queue_free()
+
+
+# Mercy clear for an overflowing column. Called from the placement flow
+# AFTER cascade resolution. Only fires when:
+#   - the column is at 7+ cards (danger zone) — 5 and 6 stay player-managed
+#   - find_scoring_groups returns nothing on the column right now (genuinely
+#     no scoring hand available, not just "the cascade chose a different
+#     axis this round")
+# When triggered: removes the bottom card, slides everything down, and pops
+# a small "MERCY" label so the player knows the system bailed them out.
+# Awards no score and doesn't bump combo — the relief is the reward.
+func _maybe_mercy_clear(col: int) -> void:
+	var h: int = playfield.column_height(col)
+	if h < 7:
+		return
+	# Scan only this column for any 5-of-N hand. If something exists, the
+	# player can still solve it themselves on the next turn — no mercy.
+	var subset: Dictionary = playfield.column_subset_for_test(col)
+	if not subset.is_empty():
+		return
+	var bottom_row: int = playfield.lowest_filled_row(col)
+	if bottom_row < 0:
+		return
+	# Don't mercy-nuke an Anchor — it's player-locked terrain. Skip mercy
+	# rather than violating the Anchor contract.
+	var bottom_card: Card = playfield.card_at(col, bottom_row)
+	if bottom_card != null and bottom_card.is_anchor and not _anchor_free:
+		return
+
+	_spawn_mercy_popup(col)
+	Sfx.play("clear")
+	playfield.clear_cells([Vector2i(col, bottom_row)])
+	await get_tree().create_timer(CLEAR_DELAY).timeout
+	playfield.apply_gravity()
+	await get_tree().create_timer(GRAVITY_DELAY).timeout
+
+
+# Floating "MERCY" label anchored to the freed slot so the player sees
+# what the system did for them.
+func _spawn_mercy_popup(col: int) -> void:
+	var popup := Label.new()
+	popup.text = "MERCY"
+	popup.add_theme_font_size_override("font_size", 40)
+	popup.add_theme_color_override("font_color", Color(0.65, 0.95, 1.00))
+	popup.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
+	popup.add_theme_constant_override("outline_size", 9)
+	popup.z_index = 118
+	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popup)
+	await get_tree().process_frame
+
+	var rect: Rect2 = playfield.cell_local_rect(col, PlayField.GRID_HEIGHT - 1)
+	var anchor: Vector2 = playfield.global_position + rect.position + rect.size * 0.5
+	popup.position = anchor - popup.size * 0.5
+	popup.pivot_offset = popup.size * 0.5
+	popup.scale = Vector2(0.5, 0.5)
+	var start_y := popup.position.y
+
+	var t := create_tween().set_parallel(true)
+	t.tween_property(popup, "scale", Vector2(1.0, 1.0), 0.18) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "position:y", start_y - 70.0, 0.85) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(popup, "modulate:a", 0.0, 0.45).set_delay(0.55)
+
+	await t.finished
+	popup.queue_free()
 
 
 # Celebration banner when 2+ scoring groups fire in the same cascade tier.

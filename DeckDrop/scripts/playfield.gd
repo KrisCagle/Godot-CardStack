@@ -49,6 +49,30 @@ func lowest_empty_row(col: int) -> int:
 	return -1
 
 
+# How many cards are currently in this column. Drives Hot Stack scoring
+# bonuses and the warning glow at 6+/7+.
+func column_height(col: int) -> int:
+	if col < 0 or col >= GRID_WIDTH:
+		return 0
+	var n: int = 0
+	for y in GRID_HEIGHT:
+		if grid[col][y] != null:
+			n += 1
+	return n
+
+
+# Returns the grid row of the lowest filled cell in the column, or -1 if
+# the column is empty. Used by the "stuck stack" mercy clear to nuke the
+# very bottom card of an overflowing column when no hand can fire.
+func lowest_filled_row(col: int) -> int:
+	if col < 0 or col >= GRID_WIDTH:
+		return -1
+	for y in range(GRID_HEIGHT - 1, -1, -1):
+		if grid[col][y] != null:
+			return y
+	return -1
+
+
 func place_card(card: Card, col: int) -> int:
 	var row := lowest_empty_row(col)
 	if row < 0:
@@ -224,6 +248,13 @@ static func _indices_with_rank_count(cards: Array, target_count: int) -> Array:
 		if int(rank_counts.get(cards[i].rank, 0)) >= target_count:
 			result.append(i)
 	return result
+
+
+# Public wrapper so game.gd can ask "is there any hand on this column?"
+# without having to know about the internal subset machinery (used by the
+# stuck-stack mercy clear).
+func column_subset_for_test(col: int) -> Dictionary:
+	return _best_column_subset(col)
 
 
 # Best 5-of-N column subset.
@@ -427,13 +458,34 @@ func _draw() -> void:
 
 	# Anticipation glow: faint pulsing gold outline on each column's drop
 	# target so the player sees where their card will land before tapping.
-	var pulse: float = 0.18 + 0.10 * sin(float(Time.get_ticks_msec()) * 0.003)
+	# Color shifts to orange at 6+ ("hot"), red at 7+ ("danger") so the
+	# player gets a clear "this column is loaded — clear from here for a
+	# big payoff, or stop dropping into it" signal.
+	var t_ms := float(Time.get_ticks_msec())
+	var pulse: float = 0.18 + 0.10 * sin(t_ms * 0.003)
+	var hot_pulse: float = 0.32 + 0.18 * sin(t_ms * 0.006)
+	var danger_pulse: float = 0.45 + 0.30 * sin(t_ms * 0.010)
 	for x in GRID_WIDTH:
 		var drop_row := lowest_empty_row(x)
 		if drop_row < 0:
 			continue
 		var aim_rect := cell_local_rect(x, drop_row)
-		draw_rect(aim_rect, Color(1.0, 0.85, 0.40, pulse), false, 3.0)
+		var height: int = column_height(x)
+		var glow_color: Color
+		var glow_thickness: float
+		if height >= 7:
+			# Danger: next drop will fill the column → loss. Hard red pulse.
+			glow_color = Color(1.0, 0.25, 0.25, danger_pulse)
+			glow_thickness = 5.0
+		elif height >= 6:
+			# Hot stack: big multiplier waiting. Orange pulse.
+			glow_color = Color(1.0, 0.55, 0.20, hot_pulse)
+			glow_thickness = 4.0
+		else:
+			# Normal anticipation: gentle gold.
+			glow_color = Color(1.0, 0.85, 0.40, pulse)
+			glow_thickness = 3.0
+		draw_rect(aim_rect, glow_color, false, glow_thickness)
 
 	# (Round target column tint removed — was reading as a mystery yellow bar.
 	# target_col is still tracked so game.gd's bonus logic keeps working; only
