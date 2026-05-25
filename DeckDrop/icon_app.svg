@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DeckDrop placeholder app icon (512×512). Casino-felt background with a
+  fanned stack of three cards — front card shows a gold spade. Designed to
+  read clearly at 48×48 launcher size while still feeling at home next to
+  a polished Play Store listing.
+
+  Replace with a designed icon before publishing — this is a serviceable
+  stand-in, not a final asset. Keep the same square aspect / package path.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="feltGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%"   stop-color="#1a4a2a"/>
+      <stop offset="60%"  stop-color="#0c2e18"/>
+      <stop offset="100%" stop-color="#04150b"/>
+    </radialGradient>
+    <linearGradient id="cardFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fbf7e8"/>
+      <stop offset="100%" stop-color="#e6e0c8"/>
+    </linearGradient>
+    <linearGradient id="cardBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f2eedf"/>
+      <stop offset="100%" stop-color="#d6cfb6"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fbe49b"/>
+      <stop offset="55%"  stop-color="#d4a23a"/>
+      <stop offset="100%" stop-color="#8a661c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="8" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background. Play will mask this for adaptive icons. -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#feltGrad)"/>
+
+  <!-- Back card (rotated left) -->
+  <g transform="translate(256 280) rotate(-14) translate(-100 -140)" filter="url(#shadow)">
+    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
+    <rect x="20" y="14" width="160" height="10" rx="5" ry="5" fill="#c8a242"/>
+  </g>
+
+  <!-- Middle card (slight right tilt) -->
+  <g transform="translate(256 270) rotate(7) translate(-100 -140)" filter="url(#shadow)">
+    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
+    <rect x="20" y="14" width="160" height="10" rx="5" ry="5" fill="#c8a242"/>
+  </g>
+
+  <!-- Front card (slight left tilt, centered) — shows big gold spade -->
+  <g transform="translate(256 260) rotate(-3) translate(-100 -140)" filter="url(#shadow)">
+    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="7"/>
+    <!-- Inner gold ring for that ornate feel -->
+    <rect x="10" y="10" width="180" height="260" rx="16" ry="16" fill="none" stroke="#c8a242" stroke-width="2" opacity="0.85"/>
+    <!-- Top-left rank "K" -->
+    <text x="18" y="62" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="48" fill="#1a1208">K</text>
+    <text x="18" y="100" font-family="Georgia, 'Times New Roman', serif" font-size="34" fill="#1a1208">♠</text>
+    <!-- Big gold spade in the middle -->
+    <g transform="translate(100 170)" fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2">
+      <path d="M0 -64
+               C -36 -28 -64 -8 -64 22
+               C -64 50 -42 64 -22 64
+               C -8 64 -2 56 0 50
+               C 2 56 8 64 22 64
+               C 42 64 64 50 64 22
+               C 64 -8 36 -28 0 -64 Z"/>
+      <!-- Spade stem -->
+      <path d="M -16 86 L 16 86 L 8 56 L -8 56 Z"/>
+    </g>
+  </g>
+</svg>

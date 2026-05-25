@@ -14,7 +14,12 @@ config/name="DeckDrop"
 config/description="Tap a column to drop a card. Make poker hands across rows and columns. Endless."
 run/main_scene="res://scenes/Title.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://icon_app.svg"
+# Version metadata — bump version/string + version/code for every Play release.
+# version/code must increase on every Play upload (it's how Play orders
+# upgrades). version/string is the human-facing label shown in the listing.
+config/version="1.0.0"
+config/version_code=1
 
 [autoload]
 
