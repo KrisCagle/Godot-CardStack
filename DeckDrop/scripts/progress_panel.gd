@@ -124,31 +124,42 @@ func _populate_themes() -> void:
 		var ul: int = int(t.unlock_level)
 		var unlocked := SaveData.level >= ul
 
-		var row := HBoxContainer.new()
-		row.size_flags_horizontal = SIZE_EXPAND_FILL
-
-		# Felt color swatch on the left previews the theme.
-		var swatch := ColorRect.new()
-		swatch.custom_minimum_size = Vector2(36, 36)
-		swatch.color = t.felt if unlocked else Color(0.20, 0.22, 0.28)
-		row.add_child(swatch)
-
-		var name_label := Label.new()
-		name_label.add_theme_font_size_override("font_size", 28)
-		name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 		if unlocked:
+			# Tap any unlocked theme to make it the active one.
+			var btn := Button.new()
+			btn.custom_minimum_size = Vector2(0, 58)
+			btn.size_flags_horizontal = SIZE_EXPAND_FILL
+			btn.add_theme_font_size_override("font_size", 26)
 			if id == current_id:
-				name_label.text = "  %s   ✓ CURRENT" % String(t.name)
-				name_label.modulate = Color(1.00, 0.95, 0.50)
+				btn.text = "  ✓  %s   (active)" % String(t.name)
+				btn.add_theme_color_override("font_color", Color(1.00, 0.95, 0.50))
 			else:
-				name_label.text = "  %s   (unlocked)" % String(t.name)
-				name_label.modulate = Color(0.72, 0.85, 1.00)
+				btn.text = "  %s   — tap to apply" % String(t.name)
+				btn.add_theme_color_override("font_color", Color(0.72, 0.85, 1.00))
+			# Capture id in a local so the lambda binds the right value per iter.
+			var theme_id := id
+			btn.pressed.connect(func(): _on_theme_selected(theme_id))
+			themes_vbox.add_child(btn)
 		else:
+			var row := HBoxContainer.new()
+			row.size_flags_horizontal = SIZE_EXPAND_FILL
+			var swatch := ColorRect.new()
+			swatch.custom_minimum_size = Vector2(36, 36)
+			swatch.color = Color(0.20, 0.22, 0.28)
+			row.add_child(swatch)
+			var name_label := Label.new()
+			name_label.add_theme_font_size_override("font_size", 28)
+			name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 			name_label.text = "  %s   🔒 Lv %d" % [String(t.name), ul]
 			name_label.modulate = Color(0.50, 0.55, 0.65)
-		row.add_child(name_label)
+			row.add_child(name_label)
+			themes_vbox.add_child(row)
 
-		themes_vbox.add_child(row)
+
+func _on_theme_selected(id: String) -> void:
+	SaveData.selected_theme_id = id
+	SaveData.save_game()
+	_populate_themes()
 
 
 func _populate_achievements() -> void:

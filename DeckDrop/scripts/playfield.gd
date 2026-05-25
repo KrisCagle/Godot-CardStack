@@ -398,11 +398,9 @@ func _draw() -> void:
 		var aim_rect := cell_local_rect(x, drop_row)
 		draw_rect(aim_rect, Color(1.0, 0.85, 0.40, pulse), false, 3.0)
 
-	# Column target: faint gold tint over the column we're trying to fill.
-	if target_col >= 0 and target_col < GRID_WIDTH:
-		var cell_wt := size.x / float(GRID_WIDTH)
-		var tint_rect := Rect2(target_col * cell_wt, 0.0, cell_wt, size.y)
-		draw_rect(tint_rect, Color(0.95, 0.75, 0.40, 0.07), true)
+	# (Round target column tint removed — was reading as a mystery yellow bar.
+	# target_col is still tracked so game.gd's bonus logic keeps working; only
+	# the visual is gone.)
 
 	if _flash_col >= 0 and _flash_t > 0.0:
 		var cell_w := size.x / float(GRID_WIDTH)

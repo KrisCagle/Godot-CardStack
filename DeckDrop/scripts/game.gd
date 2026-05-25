@@ -397,6 +397,8 @@ func _process_cascades() -> void:
 		_update_objective("max_cascade", cascade_tier)
 		if cascade_tier >= 3:
 			_try_achievement("triple_cascade")
+		if cascade_tier >= 5:
+			_try_achievement("cascading")
 		var tier_mult := 1.0 + float(cascade_tier - 1) * (0.5 + _active_cascade_tier_bonus)
 		if cascade_tier >= 2:
 			_shake(7.0, 0.18)
@@ -447,6 +449,8 @@ func _process_cascades() -> void:
 				if bc != null and _bonus_cards.get(bc, false):
 					bonus_mult = 2.0
 					_bonus_cards.erase(bc)
+					SaveData.increment_stat("total_bonus_triggered")
+					_check_threshold_achievement("bonus_hunter", "total_bonus_triggered", 10)
 					break
 			var earned := int(round(float(g.score) * tier_mult * combo_mult * _active_base_mult * flare_mult * royal_mult * hearts_mult * double_mult * bonus_mult))
 			score += earned
@@ -472,6 +476,14 @@ func _process_cascades() -> void:
 			SaveData.increment_stat("total_hands_cleared")
 			_update_objective("hand_count", 1, String(g.name))
 			_update_objective("single_hand_score", earned)
+			# Hand-specific lifetime counters + achievements.
+			match String(g.name):
+				"Pair":
+					SaveData.increment_stat("total_pairs_scored")
+					_check_threshold_achievement("pair_up", "total_pairs_scored", 50)
+				"Flush":
+					SaveData.increment_stat("total_flushes_scored")
+					_check_threshold_achievement("flush_master", "total_flushes_scored", 20)
 
 			# Achievement: Royal Flush ever, Wild Thing if a Joker contributed.
 			if int(g.rank) == HandEvaluator.HandRank.ROYAL_FLUSH:
@@ -536,6 +548,8 @@ func _evaluate_round() -> void:
 				Vector2(size.x * 0.5, 260.0),
 				Color(0.95, 1.00, 0.55))
 			_wager = 0
+			SaveData.increment_stat("total_wagers_won")
+			_check_threshold_achievement("wager_wizard", "total_wagers_won", 5)
 		score += bonus
 		_refresh_score()
 		print("[dealer] %s (%d) BEATEN with %d → +%d bonus" \
@@ -543,6 +557,11 @@ func _evaluate_round() -> void:
 		Sfx.play("win")
 		_try_achievement("first_dealer")
 		_update_objective("dealers_beaten", 1)
+		# Boss tracking for the Boss Slayer achievement.
+		if was_boss:
+			SaveData.mark_boss_beaten(String(_dealer_target.get("id", "")))
+			if SaveData.bosses_beaten_count() >= 6:
+				_try_achievement("boss_slayer")
 		_spawn_dealer_popup("BEAT DEALER  +%d" % bonus, Color(0.45, 1.0, 0.65))
 		_shake(10.0, 0.22)
 		await get_tree().create_timer(0.55).timeout
@@ -618,6 +637,9 @@ func _end_run(reason: String = "column_overflow") -> void:
 	var previous_level: int = SaveData.level
 	var add_result: Dictionary = SaveData.add_xp(total_xp)
 	var is_new_best: bool = SaveData.record_score(score, MatchState.score_date_for_current_run())
+	# Level-threshold achievement check after the XP award resolves.
+	if SaveData.level >= 12:
+		_try_achievement("theme_collector")
 
 	# Lifetime stat rollup
 	SaveData.increment_stat("total_runs")
@@ -1059,14 +1081,40 @@ func _on_placement_recorded(placed: Card) -> void:
 	# Objective hooks for the rest of the special pool.
 	if placed.is_anchor:
 		_update_objective("anchors_placed", 1)
+		SaveData.increment_stat("total_anchors_placed")
+		_check_threshold_achievement("anchor_master", "total_anchors_placed", 10)
 	if placed.is_flare:
 		_update_objective("flares_placed", 1)
 	if placed.is_crown:
 		_update_objective("crowns_placed", 1)
+		SaveData.increment_stat("total_crowns_placed")
+		_check_threshold_achievement("crown_royalty", "total_crowns_placed", 10)
 	if placed.is_sweep:
 		_update_objective("waves_used", 1)
+		SaveData.increment_stat("total_sweeps_used")
+		_check_threshold_achievement("sweep_crew", "total_sweeps_used", 10)
 	if placed.is_shuffle:
 		_update_objective("shuffles_used", 1)
+		SaveData.increment_stat("total_shuffles_used")
+		_check_threshold_achievement("shuffler", "total_shuffles_used", 5)
+	if placed.is_mirror:
+		SaveData.increment_stat("total_mirrors_placed")
+		_check_threshold_achievement("mirror_master", "total_mirrors_placed", 5)
+	if placed.is_burst:
+		SaveData.increment_stat("total_bursts_used")
+		_check_threshold_achievement("burst_king", "total_bursts_used", 5)
+	# Long-tail per-run + lifetime
+	if _run_placements >= 100:
+		# Centenarian was originally "level 10" but the trigger has always been
+		# placement-based; leave it as the long-run badge.
+		_try_achievement("centenarian")
+
+
+# Helper: claim an achievement once its tracked stat reaches `threshold`.
+# Safe to call every time the stat increments — claim_achievement is idempotent.
+func _check_threshold_achievement(achievement_id: String, stat_key: String, threshold: int) -> void:
+	if SaveData.get_stat(stat_key) >= threshold:
+		_try_achievement(achievement_id)
 
 
 # Centralized combo update so the bomb and normal-placement paths share rules.
@@ -1083,6 +1131,8 @@ func _update_combo_state() -> void:
 			_combo_reached_2_this_run = true
 		if _combo >= 5:
 			_try_achievement("hot_streak")
+		if _combo >= 15:
+			_try_achievement("mega_combo")
 	else:
 		# Combo Shield perk: once combo hit 2 this run, it can't drop below 2.
 		if _combo_shield and _combo_reached_2_this_run:
@@ -1876,6 +1926,9 @@ func _on_wager_pressed() -> void:
 	_spawn_mini_popup("BANK  %d" % stake,
 		Vector2(size.x * 0.5, 220.0),
 		Color(0.95, 0.85, 0.40))
+	SaveData.update_max_stat("max_wager", stake)
+	if stake >= 1000:
+		_try_achievement("high_roller")
 	_refresh_score()
 	_refresh_actions()
 

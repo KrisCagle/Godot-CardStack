@@ -63,6 +63,14 @@ const LIST := [
 
 # Returns the highest-unlock-level theme the player has access to.
 static func current() -> Dictionary:
+	# Honor explicit player selection from the Progress panel if it's unlocked.
+	var sel := String(SaveData.selected_theme_id)
+	if not sel.is_empty():
+		var selected := by_id(sel)
+		if not selected.is_empty() \
+			and SaveData.level >= int(selected.get("unlock_level", 1)):
+			return selected
+	# Otherwise auto-pick the highest-unlock-level theme the player has access to.
 	var best: Dictionary = LIST[0]
 	for t in LIST:
 		var ul: int = int(t.get("unlock_level", 1))
