@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DeckDrop Play Store feature graphic (1024x500). Same casino-felt +
+  gold + playing-card vocabulary as icon_app.svg so the listing reads as
+  one brand. Composition is centered so it survives Play's various
+  overlay placements (install button bottom-right, app name bottom-left
+  in some carousels, full-banner in others).
+
+  Five fanned cards across the top showing a poker-feeling hand (5-7-9-J-K
+  of mixed suits), DECKDROP wordmark large in the middle, tagline below.
+
+  Convert to PNG before uploading to Play (Preview, CloudConvert, or
+  rsvg-convert -w 1024 -h 500 feature_graphic.svg -o feature_graphic.png).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <radialGradient id="feltGrad" cx="50%" cy="50%" r="65%">
+      <stop offset="0%"   stop-color="#1f5532"/>
+      <stop offset="55%"  stop-color="#0d3219"/>
+      <stop offset="100%" stop-color="#04150b"/>
+    </radialGradient>
+    <linearGradient id="cardFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fbf7e8"/>
+      <stop offset="100%" stop-color="#e6e0c8"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fbe49b"/>
+      <stop offset="55%"  stop-color="#d4a23a"/>
+      <stop offset="100%" stop-color="#8a661c"/>
+    </linearGradient>
+    <linearGradient id="wordmarkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#ffe9a0"/>
+      <stop offset="55%"  stop-color="#e0b14a"/>
+      <stop offset="100%" stop-color="#9c7424"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
+      <feOffset dx="0" dy="6" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Felt background. No rounded corners — Play wants opaque rect. -->
+  <rect width="1024" height="500" fill="url(#feltGrad)"/>
+
+  <!-- Subtle gold rule lines across the top and bottom for casino marquee feel -->
+  <rect x="64" y="32" width="896" height="2" fill="#c8a242" opacity="0.45"/>
+  <rect x="64" y="466" width="896" height="2" fill="#c8a242" opacity="0.45"/>
+
+  <!-- Five fanned cards across the top center, each rotated to arc.
+       Card geometry: 110 wide x 154 tall, rendered relative to its own
+       rotation origin then translated into position. -->
+
+  <!-- Card 1 (leftmost): 5 of Hearts, rotated -22deg -->
+  <g transform="translate(280 175) rotate(-22) translate(-55 -77)" filter="url(#cardShadow)">
+    <rect width="110" height="154" rx="13" ry="13" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="4"/>
+    <rect x="6" y="6" width="98" height="142" rx="9" ry="9" fill="none" stroke="#c8a242" stroke-width="1.2" opacity="0.8"/>
+    <text x="10" y="32" font-family="Georgia, serif" font-weight="700" font-size="26" fill="#b21820">5</text>
+    <text x="10" y="56" font-family="Georgia, serif" font-size="20" fill="#b21820">♥</text>
+    <text x="55" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="70" fill="#b21820">♥</text>
+  </g>
+
+  <!-- Card 2: 7 of Spades, rotated -11deg -->
+  <g transform="translate(400 145) rotate(-11) translate(-55 -77)" filter="url(#cardShadow)">
+    <rect width="110" height="154" rx="13" ry="13" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="4"/>
+    <rect x="6" y="6" width="98" height="142" rx="9" ry="9" fill="none" stroke="#c8a242" stroke-width="1.2" opacity="0.8"/>
+    <text x="10" y="32" font-family="Georgia, serif" font-weight="700" font-size="26" fill="#1a1208">7</text>
+    <text x="10" y="56" font-family="Georgia, serif" font-size="20" fill="#1a1208">♠</text>
+    <text x="55" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="70" fill="#1a1208">♠</text>
+  </g>
+
+  <!-- Card 3 (center, front-most): K of Spades, no rotation -->
+  <g transform="translate(512 135) translate(-55 -77)" filter="url(#cardShadow)">
+    <rect width="110" height="154" rx="13" ry="13" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="5"/>
+    <rect x="6" y="6" width="98" height="142" rx="9" ry="9" fill="none" stroke="#c8a242" stroke-width="1.5"/>
+    <text x="10" y="34" font-family="Georgia, serif" font-weight="700" font-size="28" fill="#1a1208">K</text>
+    <text x="10" y="58" font-family="Georgia, serif" font-size="22" fill="#1a1208">♠</text>
+    <text x="55" y="108" text-anchor="middle" font-family="Georgia, serif" font-size="78" fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1">♠</text>
+  </g>
+
+  <!-- Card 4: J of Diamonds, rotated +11deg -->
+  <g transform="translate(624 145) rotate(11) translate(-55 -77)" filter="url(#cardShadow)">
+    <rect width="110" height="154" rx="13" ry="13" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="4"/>
+    <rect x="6" y="6" width="98" height="142" rx="9" ry="9" fill="none" stroke="#c8a242" stroke-width="1.2" opacity="0.8"/>
+    <text x="10" y="32" font-family="Georgia, serif" font-weight="700" font-size="26" fill="#b21820">J</text>
+    <text x="10" y="56" font-family="Georgia, serif" font-size="20" fill="#b21820">♦</text>
+    <text x="55" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="70" fill="#b21820">♦</text>
+  </g>
+
+  <!-- Card 5 (rightmost): 9 of Clubs, rotated +22deg -->
+  <g transform="translate(744 175) rotate(22) translate(-55 -77)" filter="url(#cardShadow)">
+    <rect width="110" height="154" rx="13" ry="13" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="4"/>
+    <rect x="6" y="6" width="98" height="142" rx="9" ry="9" fill="none" stroke="#c8a242" stroke-width="1.2" opacity="0.8"/>
+    <text x="10" y="32" font-family="Georgia, serif" font-weight="700" font-size="26" fill="#1a1208">9</text>
+    <text x="10" y="56" font-family="Georgia, serif" font-size="20" fill="#1a1208">♣</text>
+    <text x="55" y="105" text-anchor="middle" font-family="Georgia, serif" font-size="70" fill="#1a1208">♣</text>
+  </g>
+
+  <!-- DECKDROP wordmark, centered, big -->
+  <text x="512" y="380"
+        text-anchor="middle"
+        font-family="'Helvetica Neue', 'Arial Black', sans-serif"
+        font-weight="900"
+        font-size="90"
+        letter-spacing="10"
+        fill="url(#wordmarkGrad)"
+        stroke="#5a3e10"
+        stroke-width="2"
+        filter="url(#textShadow)">DECKDROP</text>
+
+  <!-- Tagline -->
+  <text x="512" y="432"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-style="italic"
+        font-size="26"
+        letter-spacing="3"
+        fill="#e0b14a"
+        opacity="0.95">Connect 4 meets poker</text>
+</svg>
