@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  DeckDrop placeholder app icon (512×512). Casino-felt background with a
-  fanned stack of three cards — front card shows a gold spade. Designed to
-  read clearly at 48×48 launcher size while still feeling at home next to
-  a polished Play Store listing.
-
-  Replace with a designed icon before publishing — this is a serviceable
-  stand-in, not a final asset. Keep the same square aspect / package path.
+  DeckDrop app icon (512x512). Casino-felt background with a fanned stack
+  of three cards above a gold "DECKDROP" wordmark. Designed to read at
+  both 512x512 (Play listing hi-res) and 48x48 (launcher icon) without
+  the text turning to mush. Replace with a designed icon before final
+  publishing — this is still a serviceable placeholder, just now with
+  the brand name baked in.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
@@ -28,48 +27,81 @@
       <stop offset="55%"  stop-color="#d4a23a"/>
       <stop offset="100%" stop-color="#8a661c"/>
     </linearGradient>
+    <linearGradient id="wordmarkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#ffe9a0"/>
+      <stop offset="55%"  stop-color="#e0b14a"/>
+      <stop offset="100%" stop-color="#9c7424"/>
+    </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
       <feOffset dx="0" dy="8" result="off"/>
       <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <filter id="textShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.7"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
 
-  <!-- Rounded square background. Play will mask this for adaptive icons. -->
+  <!-- Rounded square background. Play masks this for adaptive icons. -->
   <rect width="512" height="512" rx="96" ry="96" fill="url(#feltGrad)"/>
 
-  <!-- Back card (rotated left) -->
-  <g transform="translate(256 280) rotate(-14) translate(-100 -140)" filter="url(#shadow)">
-    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
-    <rect x="20" y="14" width="160" height="10" rx="5" ry="5" fill="#c8a242"/>
+  <!-- Back card (rotated left). Cards shifted up so the wordmark has room. -->
+  <g transform="translate(256 215) rotate(-14) translate(-90 -126)" filter="url(#shadow)">
+    <rect width="180" height="252" rx="20" ry="20" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
+    <rect x="18" y="12" width="144" height="9" rx="4.5" ry="4.5" fill="#c8a242"/>
   </g>
 
   <!-- Middle card (slight right tilt) -->
-  <g transform="translate(256 270) rotate(7) translate(-100 -140)" filter="url(#shadow)">
-    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
-    <rect x="20" y="14" width="160" height="10" rx="5" ry="5" fill="#c8a242"/>
+  <g transform="translate(256 205) rotate(7) translate(-90 -126)" filter="url(#shadow)">
+    <rect width="180" height="252" rx="20" ry="20" fill="url(#cardBack)" stroke="#3a2a18" stroke-width="6"/>
+    <rect x="18" y="12" width="144" height="9" rx="4.5" ry="4.5" fill="#c8a242"/>
   </g>
 
   <!-- Front card (slight left tilt, centered) — shows big gold spade -->
-  <g transform="translate(256 260) rotate(-3) translate(-100 -140)" filter="url(#shadow)">
-    <rect width="200" height="280" rx="22" ry="22" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="7"/>
-    <!-- Inner gold ring for that ornate feel -->
-    <rect x="10" y="10" width="180" height="260" rx="16" ry="16" fill="none" stroke="#c8a242" stroke-width="2" opacity="0.85"/>
+  <g transform="translate(256 195) rotate(-3) translate(-90 -126)" filter="url(#shadow)">
+    <rect width="180" height="252" rx="20" ry="20" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="7"/>
+    <!-- Inner gold ring for the ornate framing -->
+    <rect x="9" y="9" width="162" height="234" rx="14" ry="14" fill="none" stroke="#c8a242" stroke-width="2" opacity="0.85"/>
     <!-- Top-left rank "K" -->
-    <text x="18" y="62" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="48" fill="#1a1208">K</text>
-    <text x="18" y="100" font-family="Georgia, 'Times New Roman', serif" font-size="34" fill="#1a1208">♠</text>
+    <text x="16" y="56" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="44" fill="#1a1208">K</text>
+    <text x="16" y="90" font-family="Georgia, 'Times New Roman', serif" font-size="30" fill="#1a1208">♠</text>
     <!-- Big gold spade in the middle -->
-    <g transform="translate(100 170)" fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2">
-      <path d="M0 -64
-               C -36 -28 -64 -8 -64 22
-               C -64 50 -42 64 -22 64
-               C -8 64 -2 56 0 50
-               C 2 56 8 64 22 64
-               C 42 64 64 50 64 22
-               C 64 -8 36 -28 0 -64 Z"/>
+    <g transform="translate(90 152)" fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2">
+      <path d="M0 -56
+               C -32 -24 -56 -8 -56 18
+               C -56 44 -36 56 -18 56
+               C -6 56 -2 50 0 44
+               C 2 50 6 56 18 56
+               C 36 56 56 44 56 18
+               C 56 -8 32 -24 0 -56 Z"/>
       <!-- Spade stem -->
-      <path d="M -16 86 L 16 86 L 8 56 L -8 56 Z"/>
+      <path d="M -14 76 L 14 76 L 7 50 L -7 50 Z"/>
     </g>
   </g>
+
+  <!-- Subtle dark band behind the wordmark so the gold text pops cleanly
+       against the felt without needing a literal divider line. -->
+  <rect x="0" y="380" width="512" height="132" fill="#000" opacity="0.18"/>
+
+  <!-- Thin gold separator above the wordmark — reads as a casino marquee
+       rule. Inset from the rounded corners so it doesn't poke past them. -->
+  <rect x="76" y="394" width="360" height="2" fill="#c8a242" opacity="0.7"/>
+
+  <!-- DECKDROP wordmark. Bold sans for legibility at small launcher sizes;
+       the serif Georgia from the card would mush below ~96px tall. Wide
+       letter-spacing reads as luxe / casino marquee. -->
+  <text x="256" y="467"
+        text-anchor="middle"
+        font-family="'Helvetica Neue', 'Arial Black', sans-serif"
+        font-weight="900"
+        font-size="62"
+        letter-spacing="6"
+        fill="url(#wordmarkGrad)"
+        stroke="#5a3e10"
+        stroke-width="1.5"
+        filter="url(#textShadow)">DECKDROP</text>
 </svg>
