@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Play Store screenshot #1 — Title screen with feature callouts.
-  Fully self-contained SVG (no external image refs). Recreates the
-  DeckDrop title screen UI faithfully and overlays gold marketing copy
-  describing the headline features.
+  Play Store screenshot #1 — Title screen with marketing overlay.
+  Self-contained SVG. Recreates the DeckDrop title screen and overlays
+  bold gold copy that sells the hook in three lines: genre, scope, price.
   1080x1920, convert to PNG before uploading to Play.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
@@ -32,43 +31,41 @@
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="1080" height="1920" fill="url(#bgGrad)"/>
   <rect width="1080" height="1920" fill="url(#diamonds)" opacity="0.5"/>
 
-  <!-- Top headline overlay -->
-  <text x="540" y="140" text-anchor="middle"
+  <!-- TOP MARKETING HEADLINE -->
+  <text x="540" y="120" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
-        font-weight="900" font-size="74" letter-spacing="4"
-        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
+        font-weight="900" font-size="82" letter-spacing="4"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2.5"
         filter="url(#goldGlow)">CONNECT 4 MEETS POKER</text>
-  <text x="540" y="200" text-anchor="middle"
+  <text x="540" y="185" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="34" letter-spacing="2"
-        fill="#e8d8b0" opacity="0.92">Tap to drop. Build hands. Chase the score.</text>
+        font-style="italic" font-size="36" letter-spacing="2"
+        fill="#f6e3a8">Tap to drop. Score hands. Climb the deck.</text>
 
-  <!-- Suits row -->
-  <g font-family="Georgia, serif" font-size="64" fill="url(#goldGrad)" text-anchor="middle">
-    <text x="380" y="370">♠</text>
-    <text x="475" y="370">♥</text>
-    <text x="600" y="370">♦</text>
-    <text x="700" y="370">♣</text>
+  <!-- Suit symbols -->
+  <g font-family="Georgia, serif" font-size="68" fill="url(#goldGrad)" text-anchor="middle">
+    <text x="385" y="375">♠</text>
+    <text x="480" y="375">♥</text>
+    <text x="600" y="375">♦</text>
+    <text x="700" y="375">♣</text>
   </g>
 
-  <!-- Title panel (matches the in-game card frame) -->
-  <rect x="115" y="395" width="850" height="1090" rx="22" ry="22"
+  <!-- Title panel -->
+  <rect x="115" y="400" width="850" height="1080" rx="22" ry="22"
         fill="url(#panelGrad)" stroke="url(#goldGrad)" stroke-width="3"/>
-  <rect x="125" y="405" width="830" height="1070" rx="16" ry="16"
+  <rect x="125" y="410" width="830" height="1060" rx="16" ry="16"
         fill="none" stroke="#c8a242" stroke-width="1" opacity="0.5"/>
 
-  <!-- DeckDrop title (matches the SuperMellow chunky-yellow look) -->
-  <text x="540" y="555" text-anchor="middle"
+  <!-- DeckDrop title -->
+  <text x="540" y="560" text-anchor="middle"
         font-family="'Arial Black', 'Helvetica Neue', sans-serif"
-        font-weight="900" font-size="120" letter-spacing="-2"
+        font-weight="900" font-size="124" letter-spacing="-2"
         fill="#f9d24a" stroke="#7a5818" stroke-width="3"
         filter="url(#goldGlow)">DeckDrop</text>
 
-  <!-- Subtitle / pitch -->
   <text x="540" y="640" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#a8b4d0">
     Make poker hands across rows
@@ -78,52 +75,49 @@
     and columns. Beat the dealer.
   </text>
 
-  <!-- Lv 8 (matches the actual game state from your screenshot) -->
-  <text x="540" y="830" text-anchor="middle"
+  <text x="540" y="820" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="600" font-size="56" fill="#f0f3fa">Lv 8</text>
 
-  <!-- XP bar -->
-  <rect x="225" y="870" width="630" height="22" rx="11" fill="#0a1020" stroke="#1d2843" stroke-width="1.5"/>
-  <rect x="227" y="872" width="110" height="18" rx="9" fill="url(#goldGrad)"/>
+  <rect x="225" y="860" width="630" height="22" rx="11" fill="#0a1020" stroke="#1d2843" stroke-width="1.5"/>
+  <rect x="227" y="862" width="110" height="18" rx="9" fill="url(#goldGrad)"/>
 
-  <!-- Best score line -->
-  <text x="540" y="945" text-anchor="middle"
+  <text x="540" y="935" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#9aa6c2">Best: 34,911</text>
+  <text x="540" y="980" text-anchor="middle"
+        font-family="'Helvetica Neue', sans-serif" font-size="28" fill="#7a86a4">Next: Forest at Lv 12</text>
 
-  <!-- Buttons -->
   <g>
-    <rect x="225" y="1020" width="630" height="105" rx="14" ry="14"
+    <rect x="225" y="1040" width="630" height="105" rx="14" ry="14"
           fill="#0f1830" stroke="url(#goldGrad)" stroke-width="2.5"/>
-    <text x="540" y="1085" text-anchor="middle"
+    <text x="540" y="1105" text-anchor="middle"
           font-family="'Helvetica Neue', sans-serif" font-weight="800"
           font-size="46" letter-spacing="6" fill="#f0f3fa">PLAY</text>
 
-    <rect x="225" y="1150" width="630" height="105" rx="14" ry="14"
+    <rect x="225" y="1170" width="630" height="105" rx="14" ry="14"
           fill="#0f1830" stroke="#3a4a6a" stroke-width="2"/>
-    <text x="540" y="1212" text-anchor="middle"
+    <text x="540" y="1232" text-anchor="middle"
           font-family="'Helvetica Neue', sans-serif" font-weight="700"
           font-size="38" letter-spacing="4" fill="#a8b4d0">📆 DAILY · 34,911</text>
 
-    <rect x="225" y="1280" width="630" height="105" rx="14" ry="14"
+    <rect x="225" y="1300" width="630" height="105" rx="14" ry="14"
           fill="#0f1830" stroke="#3a4a6a" stroke-width="2"/>
-    <text x="540" y="1342" text-anchor="middle"
+    <text x="540" y="1362" text-anchor="middle"
           font-family="'Helvetica Neue', sans-serif" font-weight="700"
           font-size="38" letter-spacing="4" fill="#a8b4d0">PROGRESS</text>
   </g>
 
-  <!-- Bottom feature callouts (the marketing gold) -->
+  <!-- BIG GOLD FEATURE CALLOUTS — the "pulls people in" copy -->
   <g font-family="'Helvetica Neue', 'Arial Black', sans-serif" text-anchor="middle">
-    <text x="540" y="1610" font-weight="900" font-size="60" letter-spacing="3"
-          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
+    <text x="540" y="1620" font-weight="900" font-size="66" letter-spacing="4"
+          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
           filter="url(#goldGlow)">FREE · OFFLINE · NO ADS</text>
-    <text x="540" y="1690" font-weight="800" font-size="44" letter-spacing="2"
-          fill="#f9d24a" filter="url(#goldGlow)">10 UNLOCKABLE THEMES</text>
-    <text x="540" y="1748" font-weight="800" font-size="44" letter-spacing="2"
-          fill="#f9d24a" filter="url(#goldGlow)">24 ACHIEVEMENTS · DAILY CHALLENGES</text>
+    <text x="540" y="1700" font-weight="800" font-size="46" letter-spacing="3"
+          fill="#f9d24a" filter="url(#goldGlow)">10 THEMES · 24 ACHIEVEMENTS</text>
+    <text x="540" y="1762" font-weight="800" font-size="46" letter-spacing="3"
+          fill="#f9d24a" filter="url(#goldGlow)">A NEW DAILY DROP EVERY DAY</text>
   </g>
 
-  <!-- DECKDROP wordmark at the very bottom -->
-  <text x="540" y="1880" text-anchor="middle"
+  <text x="540" y="1885" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
         font-weight="900" font-size="48" letter-spacing="10"
         fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"

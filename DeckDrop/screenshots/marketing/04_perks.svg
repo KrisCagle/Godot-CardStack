@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Play Store screenshot #4 — Perk shop with feature callouts.
-  Recreates the CHOOSE A PERK panel with the three perk cards from your
-  game (XP MULTIPLIER, ACTION SURGE, BOMB DISCOUNT). Gold overlays sell
-  the build-variety / roguelite depth hook.
+  Play Store screenshot #4 — Perk shop with marketing overlay.
+  Matches the new perk roll: ECHO COMBO (purple), BASE POWER (yellow),
+  JOKER MAGNET (yellow). Sells build-variety / roguelite depth.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
   <defs>
@@ -34,74 +33,73 @@
   <rect width="1080" height="1920" fill="url(#bgGrad)"/>
   <rect width="1080" height="1920" fill="url(#diamonds)" opacity="0.5"/>
 
-  <!-- Top headline -->
-  <text x="540" y="105" text-anchor="middle"
+  <!-- TOP MARKETING HEADLINE -->
+  <text x="540" y="100" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
-        font-weight="900" font-size="64" letter-spacing="3"
-        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
-        filter="url(#goldGlow)">PICK PERKS. BUILD YOUR RUN.</text>
-  <text x="540" y="165" text-anchor="middle"
+        font-weight="900" font-size="72" letter-spacing="4"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2.5"
+        filter="url(#goldGlow)">EVERY RUN, A NEW BUILD</text>
+  <text x="540" y="160" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="32" letter-spacing="2"
-        fill="#e8d8b0" opacity="0.92">25 perks. Three to choose from each round.</text>
+        font-style="italic" font-size="34" letter-spacing="2"
+        fill="#f6e3a8">Pick a perk between rounds. 25 in the pool.</text>
 
-  <!-- CHOOSE A PERK panel -->
+  <!-- Panel -->
   <rect x="90" y="280" width="900" height="1280" rx="24" ry="24"
         fill="url(#panelGrad)" stroke="url(#goldGrad)" stroke-width="3"/>
   <rect x="100" y="290" width="880" height="1260" rx="18" ry="18"
         fill="none" stroke="#c8a242" stroke-width="1" opacity="0.5"/>
 
-  <!-- Title -->
   <text x="540" y="430" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="800"
         font-size="76" letter-spacing="6" fill="#f0f3fa">CHOOSE A PERK</text>
   <text x="540" y="490" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-size="30" fill="#9aa6c2">Pick one. Applies for the rest of the run.</text>
 
-  <!-- Perk 1 - XP MULTIPLIER (yellow) -->
+  <!-- Perk 1 - ECHO COMBO (purple) -->
   <rect x="170" y="580" width="740" height="220" rx="18" ry="18"
-        fill="#101a30" stroke="#f9d24a" stroke-width="2.5"/>
+        fill="#101a30" stroke="#c47aff" stroke-width="2.5"/>
   <text x="540" y="660" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="800"
-        font-size="48" letter-spacing="4" fill="#f9d24a"
-        filter="url(#goldGlow)">XP MULTIPLIER</text>
+        font-size="48" letter-spacing="4" fill="#c47aff"
+        filter="url(#goldGlow)">ECHO COMBO</text>
   <text x="540" y="730" text-anchor="middle"
-        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#f9e8b0">Objectives give +50% XP</text>
+        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#e0c4ff">Surge cards grant +2 combo</text>
 
-  <!-- Perk 2 - ACTION SURGE (green) -->
+  <!-- Perk 2 - BASE POWER (yellow) -->
   <rect x="170" y="830" width="740" height="220" rx="18" ry="18"
-        fill="#101a30" stroke="#6fd66a" stroke-width="2.5"/>
+        fill="#101a30" stroke="#f9d24a" stroke-width="2.5"/>
   <text x="540" y="910" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="800"
-        font-size="48" letter-spacing="4" fill="#6fd66a">ACTION SURGE</text>
+        font-size="48" letter-spacing="4" fill="#f9d24a"
+        filter="url(#goldGlow)">BASE POWER</text>
   <text x="540" y="980" text-anchor="middle"
-        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#b8eab2">Refill discards + holds each round</text>
+        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#f9e8b0">+15% base score on every hand</text>
 
-  <!-- Perk 3 - BOMB DISCOUNT (red-orange) -->
+  <!-- Perk 3 - JOKER MAGNET (yellow) -->
   <rect x="170" y="1080" width="740" height="220" rx="18" ry="18"
-        fill="#101a30" stroke="#ff7a55" stroke-width="2.5"/>
+        fill="#101a30" stroke="#f9d24a" stroke-width="2.5"/>
   <text x="540" y="1160" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="800"
-        font-size="48" letter-spacing="4" fill="#ff7a55">BOMB DISCOUNT</text>
+        font-size="48" letter-spacing="4" fill="#f9d24a"
+        filter="url(#goldGlow)">JOKER MAGNET</text>
   <text x="540" y="1230" text-anchor="middle"
-        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#ffc4ad">Bombs grant +200 score on detonation</text>
+        font-family="'Helvetica Neue', sans-serif" font-size="34" fill="#f9e8b0">Specials are mostly Jokers</text>
 
-  <!-- "+ 22 more in the pool" tease -->
   <text x="540" y="1450" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif" font-style="italic"
         font-size="34" fill="#7a86a4">+ 22 more perks in the pool</text>
 
-  <!-- Bottom feature callouts -->
+  <!-- BIG GOLD MARKETING OVERLAY -->
   <g font-family="'Helvetica Neue', 'Arial Black', sans-serif" text-anchor="middle">
-    <text x="540" y="1680" font-weight="900" font-size="58" letter-spacing="3"
-          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
-          filter="url(#goldGlow)">EVERY RUN A NEW BUILD</text>
-    <text x="540" y="1755" font-weight="800" font-size="40" letter-spacing="2"
-          fill="#f9d24a" filter="url(#goldGlow)">SHOP BETWEEN ROUNDS · MIX AND MATCH</text>
+    <text x="540" y="1680" font-weight="900" font-size="62" letter-spacing="3"
+          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
+          filter="url(#goldGlow)">MIX. MATCH. CASCADE.</text>
+    <text x="540" y="1755" font-weight="800" font-size="44" letter-spacing="3"
+          fill="#f9d24a" filter="url(#goldGlow)">SHOP BETWEEN ROUNDS · NO TWO RUNS ALIKE</text>
   </g>
 
-  <!-- DECKDROP wordmark -->
-  <text x="540" y="1880" text-anchor="middle"
+  <text x="540" y="1885" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
         font-weight="900" font-size="42" letter-spacing="8"
         fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"

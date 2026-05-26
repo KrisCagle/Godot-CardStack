@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Play Store screenshot #2 — In-game with feature callouts.
-  Recreates the playfield with cards in columns plus the HUD, NEXT preview,
-  and action buttons. Bold gold overlays sell the depth: 4 axes, hot stack
-  payoffs, and the boss dealer fight.
+  Play Store screenshot #2 — In-game with marketing overlay.
+  Recreates the Tier 1 APPRENTICE playfield: 8♣ in CURRENT slot, cards
+  bottom-aligned in rows 7-8 (8♥/4♣ row 7; 3♦/7♥/A♠/7♦ row 8), NEXT
+  preview Q♠ J♣ 7♠, full action HUD. Bold gold copy sells the depth.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
   <defs>
@@ -34,125 +34,131 @@
   <rect width="1080" height="1920" fill="url(#bgGrad)"/>
   <rect width="1080" height="1920" fill="url(#diamonds)" opacity="0.5"/>
 
-  <!-- Top headline -->
+  <!-- TOP MARKETING HEADLINE -->
   <text x="540" y="100" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
-        font-weight="900" font-size="68" letter-spacing="3"
-        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
-        filter="url(#goldGlow)">BUILD HANDS. CHAIN COMBOS.</text>
+        font-weight="900" font-size="76" letter-spacing="4"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2.5"
+        filter="url(#goldGlow)">DROP CARDS. SCORE HANDS.</text>
   <text x="540" y="160" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="32" letter-spacing="2"
-        fill="#e8d8b0" opacity="0.92">Score across rows, columns, and diagonals.</text>
+        font-style="italic" font-size="34" letter-spacing="2"
+        fill="#f6e3a8">Beat the dealer before the column fills up.</text>
 
-  <!-- HUD bar -->
+  <!-- HUD -->
   <rect x="60" y="210" width="960" height="160" rx="14" ry="14"
         fill="#0f1830" stroke="url(#goldGrad)" stroke-width="2.5"/>
-  <text x="92" y="280" font-family="'Helvetica Neue', sans-serif" font-weight="800" font-size="56" fill="#f0f3fa">Tier 2</text>
-  <text x="92" y="335" font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#f9d24a">× THE HUSTLER · 100 to beat</text>
-  <text x="988" y="280" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-weight="700" font-size="48" fill="#f0f3fa">Score 685</text>
-  <text x="988" y="335" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#f9d24a">2 LEFT</text>
+  <text x="92" y="280" font-family="'Helvetica Neue', sans-serif" font-weight="800" font-size="56" fill="#f0f3fa">Tier 1</text>
+  <text x="92" y="335" font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#f9d24a">× THE APPRENTICE · 25 to beat</text>
+  <text x="988" y="280" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-weight="700" font-size="48" fill="#f0f3fa">Score 0</text>
+  <text x="988" y="335" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#f9d24a">1 LEFT</text>
 
-  <!-- CURRENT card label -->
   <text x="540" y="440" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="600" font-size="26" letter-spacing="4" fill="#7a86a4">CURRENT</text>
 
-  <!-- Current card (7♠) at top of column 2 -->
+  <!-- 8♣ falling card -->
   <g transform="translate(456 460)">
     <rect width="170" height="200" rx="14" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="3"/>
-    <text x="14" y="48" font-family="Georgia, serif" font-weight="700" font-size="44" fill="#1a1208">7</text>
-    <text x="14" y="86" font-family="Georgia, serif" font-size="34" fill="#1a1208">♠</text>
-    <text x="85" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="110" fill="#1a1208">♠</text>
+    <text x="14" y="48" font-family="Georgia, serif" font-weight="700" font-size="44" fill="#1a1208">8</text>
+    <text x="14" y="86" font-family="Georgia, serif" font-size="34" fill="#1a1208">♣</text>
+    <text x="85" y="160" text-anchor="middle" font-family="Georgia, serif" font-size="110" fill="#1a1208">♣</text>
   </g>
 
-  <!-- Grid of cards (5 wide, 8 tall — cells 170x90 spaced) -->
-  <g>
-    <!-- Empty rows above -->
-    <g fill="#0f1830" stroke="#1d2843" stroke-width="1.5">
-      <rect x="60"  y="680" width="170" height="100" rx="6"/>
-      <rect x="240" y="680" width="170" height="100" rx="6"/>
-      <rect x="420" y="680" width="170" height="100" rx="6"/>
-      <rect x="600" y="680" width="170" height="100" rx="6"/>
-      <rect x="780" y="680" width="170" height="100" rx="6"/>
+  <!-- Grid empty slots rows 0-5 -->
+  <g fill="#0f1830" stroke="#1d2843" stroke-width="1.5">
+    <rect x="60"  y="700" width="170" height="90" rx="6"/>
+    <rect x="240" y="700" width="170" height="90" rx="6"/>
+    <rect x="420" y="700" width="170" height="90" rx="6"/>
+    <rect x="600" y="700" width="170" height="90" rx="6"/>
+    <rect x="780" y="700" width="170" height="90" rx="6"/>
 
-      <rect x="60"  y="790" width="170" height="100" rx="6"/>
-      <rect x="240" y="790" width="170" height="100" rx="6"/>
-      <rect x="420" y="790" width="170" height="100" rx="6"/>
-      <rect x="600" y="790" width="170" height="100" rx="6"/>
-      <rect x="780" y="790" width="170" height="100" rx="6"/>
+    <rect x="60"  y="800" width="170" height="90" rx="6"/>
+    <rect x="240" y="800" width="170" height="90" rx="6"/>
+    <rect x="420" y="800" width="170" height="90" rx="6"/>
+    <rect x="600" y="800" width="170" height="90" rx="6"/>
+    <rect x="780" y="800" width="170" height="90" rx="6"/>
 
-      <rect x="60"  y="900" width="170" height="100" rx="6"/>
-      <rect x="240" y="900" width="170" height="100" rx="6"/>
-      <rect x="420" y="900" width="170" height="100" rx="6"/>
-      <rect x="600" y="900" width="170" height="100" rx="6"/>
-      <rect x="780" y="900" width="170" height="100" rx="6"/>
-    </g>
+    <rect x="60"  y="900" width="170" height="90" rx="6"/>
+    <rect x="240" y="900" width="170" height="90" rx="6"/>
+    <rect x="420" y="900" width="170" height="90" rx="6"/>
+    <rect x="600" y="900" width="170" height="90" rx="6"/>
+    <rect x="780" y="900" width="170" height="90" rx="6"/>
 
-    <!-- Cards in middle column starting from row 3 down: J♣ -->
-    <g transform="translate(420 1010)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">J</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♣</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♣</text>
-    </g>
-    <!-- 3♠ -->
-    <g transform="translate(420 1120)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">3</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♠</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♠</text>
-    </g>
-    <!-- 4♥ -->
-    <g transform="translate(420 1230)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <rect x="14" y="6" width="142" height="6" rx="3" fill="#b21820"/>
-      <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#b21820">4</text>
-      <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#b21820">♥</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#b21820">♥</text>
-    </g>
-    <!-- 8♣ -->
-    <g transform="translate(420 1340)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">8</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♣</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♣</text>
-    </g>
-    <!-- J♠ in column 4 -->
-    <g transform="translate(600 1340)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">J</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♠</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♠</text>
-    </g>
-    <!-- 10♣ -->
-    <g transform="translate(420 1450)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">10</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♣</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♣</text>
-    </g>
-    <!-- 9♣ -->
-    <g transform="translate(600 1450)">
-      <rect width="170" height="100" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
-      <text x="10" y="40" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">9</text>
-      <text x="10" y="68" font-family="Georgia, serif" font-size="22" fill="#1a1208">♣</text>
-      <text x="120" y="78" font-family="Georgia, serif" font-size="48" fill="#1a1208">♣</text>
-    </g>
+    <rect x="60"  y="1000" width="170" height="90" rx="6"/>
+    <rect x="240" y="1000" width="170" height="90" rx="6"/>
+    <rect x="420" y="1000" width="170" height="90" rx="6"/>
+    <rect x="600" y="1000" width="170" height="90" rx="6"/>
+    <rect x="780" y="1000" width="170" height="90" rx="6"/>
+
+    <rect x="60"  y="1100" width="170" height="90" rx="6"/>
+    <rect x="240" y="1100" width="170" height="90" rx="6"/>
+    <rect x="420" y="1100" width="170" height="90" rx="6"/>
+    <rect x="600" y="1100" width="170" height="90" rx="6"/>
+    <rect x="780" y="1100" width="170" height="90" rx="6"/>
+
+    <rect x="60"  y="1200" width="170" height="90" rx="6"/>
+    <rect x="240" y="1200" width="170" height="90" rx="6"/>
+    <rect x="420" y="1200" width="170" height="90" rx="6"/>
+    <rect x="600" y="1200" width="170" height="90" rx="6"/>
+    <rect x="780" y="1200" width="170" height="90" rx="6"/>
   </g>
 
-  <!-- Big gold feature overlay between grid and bottom -->
+  <!-- Row 7: 8♥ in col 2, 4♣ in col 3 -->
+  <g transform="translate(420 1300)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <rect x="14" y="6" width="142" height="6" rx="3" fill="#b21820"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#b21820">8</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#b21820">♥</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#b21820">♥</text>
+  </g>
+  <g transform="translate(600 1300)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">4</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#1a1208">♣</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#1a1208">♣</text>
+  </g>
+
+  <!-- Row 8 (bottom): 3♦ col 0, 7♥ col 1, A♠ col 2, 7♦ col 3 -->
+  <g transform="translate(60 1400)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <rect x="14" y="6" width="142" height="6" rx="3" fill="#b21820"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#b21820">3</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#b21820">♦</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#b21820">♦</text>
+  </g>
+  <g transform="translate(240 1400)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <rect x="14" y="6" width="142" height="6" rx="3" fill="#b21820"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#b21820">7</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#b21820">♥</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#b21820">♥</text>
+  </g>
+  <g transform="translate(420 1400)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#1a1208">A</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#1a1208">♠</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#1a1208">♠</text>
+  </g>
+  <g transform="translate(600 1400)">
+    <rect width="170" height="90" rx="6" fill="url(#cardFront)" stroke="#2a1a08" stroke-width="2.5"/>
+    <rect x="14" y="6" width="142" height="6" rx="3" fill="#b21820"/>
+    <text x="10" y="42" font-family="Georgia, serif" font-weight="700" font-size="30" fill="#b21820">7</text>
+    <text x="10" y="70" font-family="Georgia, serif" font-size="22" fill="#b21820">♦</text>
+    <text x="120" y="74" font-family="Georgia, serif" font-size="48" fill="#b21820">♦</text>
+  </g>
+
+  <!-- BIG GOLD MARKETING OVERLAY -->
   <g font-family="'Helvetica Neue', 'Arial Black', sans-serif" text-anchor="middle">
-    <text x="540" y="1660" font-weight="900" font-size="62" letter-spacing="3"
-          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
+    <text x="540" y="1670" font-weight="900" font-size="68" letter-spacing="4"
+          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2.5"
           filter="url(#goldGlow)">TALL STACKS PAY 4×</text>
-    <text x="540" y="1730" font-weight="800" font-size="42" letter-spacing="2"
+    <text x="540" y="1738" font-weight="800" font-size="44" letter-spacing="3"
           fill="#f9d24a" filter="url(#goldGlow)">11 SPECIAL CARDS · 6 BOSS DEALERS</text>
-    <text x="540" y="1785" font-weight="800" font-size="42" letter-spacing="2"
-          fill="#f9d24a" filter="url(#goldGlow)">4 SCORING AXES · ENDLESS CASCADES</text>
+    <text x="540" y="1793" font-weight="800" font-size="44" letter-spacing="3"
+          fill="#f9d24a" filter="url(#goldGlow)">ROWS · COLUMNS · DIAGONALS</text>
   </g>
 
-  <!-- DECKDROP wordmark -->
-  <text x="540" y="1880" text-anchor="middle"
+  <text x="540" y="1885" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
         font-weight="900" font-size="42" letter-spacing="8"
         fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"

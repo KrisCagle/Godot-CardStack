@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Play Store screenshot #3 — Game-over / payout with feature callouts.
-  Recreates the DEALER WINS panel layered over a hint of the playfield.
-  Gold overlays sell the meta-progression hook (XP, levels, themes).
+  Play Store screenshot #3 — Game-over / payout with marketing overlay.
+  Matches the new game state: Tier 1 HUSTLER, Score 348, Three of a Kind
+  +324, Joker Wild modifier, +303 XP including +300 objective bonus,
+  Lv 8 at 1213/2262 XP. Gold copy sells meta-progression + replayability.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
   <defs>
@@ -33,65 +34,61 @@
   <rect width="1080" height="1920" fill="url(#bgGrad)"/>
   <rect width="1080" height="1920" fill="url(#diamonds)" opacity="0.5"/>
 
-  <!-- Top headline -->
-  <text x="540" y="105" text-anchor="middle"
+  <!-- TOP MARKETING HEADLINE -->
+  <text x="540" y="100" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
-        font-weight="900" font-size="64" letter-spacing="3"
-        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
-        filter="url(#goldGlow)">EVERY RUN, A NEW HIGH SCORE</text>
-  <text x="540" y="165" text-anchor="middle"
+        font-weight="900" font-size="72" letter-spacing="4"
+        fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2.5"
+        filter="url(#goldGlow)">EARN XP. LEVEL UP. REPEAT.</text>
+  <text x="540" y="160" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-style="italic" font-size="32" letter-spacing="2"
-        fill="#e8d8b0" opacity="0.92">Level up, unlock themes, beat the boss.</text>
+        font-style="italic" font-size="34" letter-spacing="2"
+        fill="#f6e3a8">Hit objectives for huge XP bonuses.</text>
 
-  <!-- Faint hint of HUD at top of frame -->
+  <!-- Faint HUD hint -->
   <rect x="40" y="220" width="1000" height="120" rx="14"
         fill="#0f1830" opacity="0.45" stroke="#2a3550" stroke-width="2"/>
-  <text x="72" y="280" font-family="'Helvetica Neue', sans-serif" font-weight="800" font-size="48" fill="#f0f3fa" opacity="0.55">Tier 2</text>
-  <text x="1008" y="280" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-weight="700" font-size="44" fill="#f0f3fa" opacity="0.55">Score 685</text>
+  <text x="72" y="280" font-family="'Helvetica Neue', sans-serif" font-weight="800" font-size="48" fill="#f0f3fa" opacity="0.55">Tier 1</text>
+  <text x="1008" y="280" text-anchor="end" font-family="'Helvetica Neue', sans-serif" font-weight="700" font-size="44" fill="#f0f3fa" opacity="0.55">Score 348</text>
   <text x="72" y="320" font-family="'Helvetica Neue', sans-serif" font-size="28" fill="#f9d24a" opacity="0.55">× THE HUSTLER · 100 to beat</text>
 
-  <!-- DEALER WINS payout panel -->
+  <!-- Game-over panel -->
   <rect x="90" y="420" width="900" height="1130" rx="24" ry="24"
         fill="url(#panelGrad)" stroke="url(#goldGrad)" stroke-width="3"/>
   <rect x="100" y="430" width="880" height="1110" rx="18" ry="18"
         fill="none" stroke="#c8a242" stroke-width="1" opacity="0.5"/>
 
-  <!-- DEALER WINS title -->
   <text x="540" y="555" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="900"
         font-size="86" letter-spacing="6" fill="#ff8a92"
         filter="url(#goldGlow)">DEALER WINS</text>
 
-  <!-- — PAYOUT — separator -->
   <text x="540" y="670" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="700"
         font-size="32" letter-spacing="6" fill="url(#goldGrad)">— PAYOUT —</text>
 
   <text x="540" y="780" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="700"
-        font-size="82" fill="#f0f3fa">Score  685</text>
+        font-size="82" fill="#f0f3fa">Score  348</text>
   <text x="540" y="852" text-anchor="middle"
-        font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#cfd6e6">Best hand: Three of a Kind   +265</text>
+        font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#cfd6e6">Best hand: Three of a Kind   +324</text>
   <text x="540" y="900" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-size="32" fill="#cfd6e6">Modifier: Joker Wild</text>
 
   <line x1="200" y1="970" x2="880" y2="970" stroke="#3a4a6a" stroke-width="2"/>
 
-  <!-- — BONUS — separator -->
   <text x="540" y="1040" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="700"
         font-size="32" letter-spacing="6" fill="url(#goldGrad)">— BONUS —</text>
 
   <text x="540" y="1135" text-anchor="middle"
         font-family="'Helvetica Neue', sans-serif" font-weight="700"
-        font-size="64" fill="#f0f3fa">+6 XP</text>
+        font-size="60" fill="#f0f3fa">+303 XP  (+300 obj 1/3)</text>
   <text x="540" y="1195" text-anchor="middle"
-        font-family="'Helvetica Neue', sans-serif" font-size="30" fill="#cfd6e6">Lv 8 · 306 / 2,262 XP</text>
+        font-family="'Helvetica Neue', sans-serif" font-size="30" fill="#cfd6e6">Lv 8 · 1,213 / 2,262 XP</text>
 
   <line x1="200" y1="1255" x2="880" y2="1255" stroke="#3a4a6a" stroke-width="2"/>
 
-  <!-- Buttons -->
   <g>
     <rect x="170" y="1330" width="340" height="125" rx="14" ry="14"
           fill="#0f1830" stroke="url(#goldGrad)" stroke-width="2.5"/>
@@ -106,17 +103,16 @@
           font-size="42" letter-spacing="3" fill="#a8b4d0">MENU</text>
   </g>
 
-  <!-- Bottom feature callouts -->
+  <!-- BIG GOLD MARKETING OVERLAY -->
   <g font-family="'Helvetica Neue', 'Arial Black', sans-serif" text-anchor="middle">
-    <text x="540" y="1680" font-weight="900" font-size="58" letter-spacing="3"
-          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
-          filter="url(#goldGlow)">LEVEL UP · UNLOCK · REPEAT</text>
-    <text x="540" y="1755" font-weight="800" font-size="40" letter-spacing="2"
-          fill="#f9d24a" filter="url(#goldGlow)">25 PERKS · 10 DEALERS · ENDLESS RUNS</text>
+    <text x="540" y="1680" font-weight="900" font-size="62" letter-spacing="3"
+          fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="2"
+          filter="url(#goldGlow)">UNLOCK 10 CARD THEMES</text>
+    <text x="540" y="1755" font-weight="800" font-size="44" letter-spacing="3"
+          fill="#f9d24a" filter="url(#goldGlow)">25 PERKS · 10 DEALERS · 24 BADGES</text>
   </g>
 
-  <!-- DECKDROP wordmark -->
-  <text x="540" y="1880" text-anchor="middle"
+  <text x="540" y="1885" text-anchor="middle"
         font-family="'Helvetica Neue', 'Arial Black', sans-serif"
         font-weight="900" font-size="42" letter-spacing="8"
         fill="url(#goldGrad)" stroke="#5a3e10" stroke-width="1.5"
